@@ -1,4 +1,4 @@
-package com.smartcalendar.smart_calendar;
+package com.smartcalendar;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
