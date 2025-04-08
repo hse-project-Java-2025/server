@@ -4,6 +4,7 @@ import com.smartcalendar.model.Task;
 import com.smartcalendar.model.User;
 import com.smartcalendar.repository.TaskRepository;
 import com.smartcalendar.repository.UserRepository;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -12,6 +13,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -59,11 +61,39 @@ public class UserService {
     }
 
     @Transactional
+    public boolean changeCredentials(String currentUsername, String currentPassword, String newUsername, String newPassword) {
+        User user = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    
+        if (passwordEncoder.matches(currentPassword, user.getPassword())) {
+            if (newUsername != null && !newUsername.isEmpty()) {
+                user.setUsername(newUsername);
+            }
+            if (newPassword != null && !newPassword.isEmpty()) {
+                user.setPassword(passwordEncoder.encode(newPassword));
+            }
+            userRepository.save(user);
+            return true;
+        }
+        return false;
+    }
+
+    @Transactional
     public void deleteAllUsers() {
         userRepository.deleteAll();
     }
 
     public UserDetailsService userDetailsService() {
         return this::loadUserByUsername;
+    }
+
+    public UserDetails loadUserByEmail(String email) throws UsernameNotFoundException {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+        return new org.springframework.security.core.userdetails.User(
+                user.getUsername(),
+                user.getPassword(),
+                new ArrayList<>()
+        );
     }
 }
