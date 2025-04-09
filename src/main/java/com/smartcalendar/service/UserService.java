@@ -96,4 +96,28 @@ public class UserService {
                 new ArrayList<>()
         );
     }
+
+    @Transactional
+    public User updateEmail(Long id, String newEmail) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        user.setEmail(newEmail);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public Task updateTaskStatus(Long taskId, boolean completed) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+        task.setCompleted(completed);
+        return taskRepository.save(task);
+    }
+
+    @Transactional(readOnly = true)
+    public String getTaskDescription(Long taskId) {
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+        return task.getDescription();
+    }
 }

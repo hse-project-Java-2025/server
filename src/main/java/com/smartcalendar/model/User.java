@@ -1,5 +1,6 @@
 package com.smartcalendar.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.Data;
@@ -33,11 +34,12 @@ public class User implements UserDetails {
     private String password;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private List<Task> tasks;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList(); // или верните реальные роли, если они есть
+        return Collections.emptyList();
     }
 
     @Override
@@ -52,21 +54,21 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonExpired() {
-        return true; // или ваша логика
+        return true;
     }
 
     @Override
     public boolean isAccountNonLocked() {
-        return true; // или ваша логика
+        return true;
     }
 
     @Override
     public boolean isCredentialsNonExpired() {
-        return true; // или ваша логика
+        return true;
     }
 
     @Override
     public boolean isEnabled() {
-        return true; // или ваша логика
+        return true;
     }
 }

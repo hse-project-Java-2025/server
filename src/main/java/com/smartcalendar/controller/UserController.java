@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -25,6 +26,25 @@ public class UserController {
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
         User user = userService.findUserById(id);
         return ResponseEntity.ok(user);
+    }
+
+    @PutMapping("/{id}/email")
+    public ResponseEntity<User> updateEmail(@PathVariable Long id, @RequestBody String newEmail) {
+        User updatedUser = userService.updateEmail(id, newEmail);
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    @PatchMapping("/tasks/{taskId}/status")
+    public ResponseEntity<Task> updateTaskStatus(@PathVariable Long taskId, @RequestBody Map<String, Boolean> requestBody) {
+        boolean completed = requestBody.get("completed");
+        Task updatedTask = userService.updateTaskStatus(taskId, completed);
+        return ResponseEntity.ok(updatedTask);
+    }
+
+    @GetMapping("/tasks/{taskId}/description")
+    public ResponseEntity<String> getTaskDescription(@PathVariable Long taskId) {
+        String description = userService.getTaskDescription(taskId);
+        return ResponseEntity.ok(description);
     }
 
     @PostMapping

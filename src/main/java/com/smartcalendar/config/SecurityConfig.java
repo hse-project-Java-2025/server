@@ -58,10 +58,16 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/webjars/**",
                                 "/static/**",
-                                "/api/auth/**",
-                                "/api/test/**"
+                                "/api/auth/login",
+                                "/api/auth/signup",
+                                "/h2-console/**"
                         ).permitAll()
-                        .anyRequest().authenticated()
+                        .requestMatchers(
+                                "/api/auth/change-credentials",
+                                "/api/statistics/**",
+                                "/api/users/**",
+                                "/api/test/**"
+                        ).authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
