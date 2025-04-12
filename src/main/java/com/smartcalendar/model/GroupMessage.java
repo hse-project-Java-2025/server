@@ -21,7 +21,7 @@ public class GroupMessage {
     @Column
     private String text;
 
-    @Column(name = "time")
+    @Column(name = "time_sent")
     private LocalDateTime timeWhenSent;
 
     @ManyToOne
