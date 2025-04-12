@@ -1,37 +1,30 @@
 package com.smartcalendar.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
-@Table(name = "events")
 @Data
+@Table(name = "group_chats")
 @NoArgsConstructor
 @AllArgsConstructor
-public class Event {
+public class GroupChat {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column
-    private String title;
-
-    @Column(name = "start_time")
-    private LocalDateTime start;
-
-    @Column(name = "end_time")
-    private LocalDateTime end;
-
-    @Column
-    private String location;
-
     @ManyToOne
-    @JoinColumn(name = "organizer_id")
+    @JoinColumn(name = "admin_id")
     @JsonBackReference
-    private User organizer;
+    private User admin;
+
+    @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<GroupMessage> messages;
 }

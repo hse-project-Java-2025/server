@@ -9,29 +9,28 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "events")
 @Data
+@Table(name = "private_messages")
 @NoArgsConstructor
 @AllArgsConstructor
-public class Event {
+public class PrivateMessage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column
-    private String title;
+    private String text;
 
-    @Column(name = "start_time")
-    private LocalDateTime start;
-
-    @Column(name = "end_time")
-    private LocalDateTime end;
-
-    @Column
-    private String location;
+    @Column(name = "time")
+    private LocalDateTime timeWhenSent;
 
     @ManyToOne
-    @JoinColumn(name = "organizer_id")
+    @JoinColumn(name = "chat_id")
     @JsonBackReference
-    private User organizer;
+    private PrivateChat chat;
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    @JsonBackReference
+    private User user;
 }
