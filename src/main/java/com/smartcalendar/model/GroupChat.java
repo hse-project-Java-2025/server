@@ -27,4 +27,8 @@ public class GroupChat {
     @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private List<GroupMessage> messages;
+
+    @ManyToMany(mappedBy = "group_chats", fetch = FetchType.LAZY)
+    @JsonBackReference
+    private List<User> users;
 }
