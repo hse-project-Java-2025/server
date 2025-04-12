@@ -61,6 +61,14 @@ public class User implements UserDetails {
     @JsonManagedReference
     private List<PrivateMessage> privateMessages;
 
+    @OneToMany(mappedBy = "user1", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<Friendship> friendships1;
+
+    @OneToMany(mappedBy = "user2", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<Friendship> friendships2;
+
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "users_events",
