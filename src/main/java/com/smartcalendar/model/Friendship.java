@@ -1,7 +1,6 @@
 package com.smartcalendar.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,23 +8,21 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Data
-@Table(name = "tasks")
+@Table(name = "friendships")
 @NoArgsConstructor
 @AllArgsConstructor
-public class Task {
+public class Friendship {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column
-    private String title;
-    @Column
-    private String description;
-    @Column
-    private boolean isCompleted;
+    @ManyToOne
+    @JoinColumn(name = "user_id1")
+    @JsonBackReference
+    private User user1;
 
     @ManyToOne
-    @JoinColumn(name = "user_id")
+    @JoinColumn(name = "user_id2")
     @JsonBackReference
-    private User user;
+    private User user2;
 }

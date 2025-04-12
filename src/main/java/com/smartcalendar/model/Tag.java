@@ -1,31 +1,27 @@
 package com.smartcalendar.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Entity
 @Data
-@Table(name = "tasks")
+@Table(name = "tags")
 @NoArgsConstructor
 @AllArgsConstructor
-public class Task {
+public class Tag {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column
     private String title;
-    @Column
-    private String description;
-    @Column
-    private boolean isCompleted;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
+    @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
     @JsonBackReference
-    private User user;
+    private List<Event> events;
 }
