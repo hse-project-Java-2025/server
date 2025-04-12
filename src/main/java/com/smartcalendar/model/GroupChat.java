@@ -28,7 +28,7 @@ public class GroupChat {
     @JsonManagedReference
     private List<GroupMessage> messages;
 
-    @ManyToMany(mappedBy = "group_chats", fetch = FetchType.LAZY)
+    @ManyToMany(mappedBy = "groupChats", fetch = FetchType.LAZY)
     @JsonBackReference
     private List<User> users;
 }
