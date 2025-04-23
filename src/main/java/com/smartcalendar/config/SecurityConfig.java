@@ -66,7 +66,9 @@ public class SecurityConfig {
                                 "/api/auth/change-credentials",
                                 "/api/statistics/**",
                                 "/api/users/**",
-                                "/api/test/**"
+                                "/api/test/**",
+                                "/api/chatgpt/**",
+                                "/api/yandexgpt/**"
                         ).authenticated()
                 )
                 .sessionManagement(session -> session
