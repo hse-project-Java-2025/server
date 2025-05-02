@@ -68,6 +68,7 @@ public class SecurityConfig {
                                 "/api/users/**",
                                 "/api/test/**",
                                 "/api/chatgpt/**",
+                                "/api/audio/**",
                                 "/api/yandexgpt/**"
                         ).authenticated()
                 )

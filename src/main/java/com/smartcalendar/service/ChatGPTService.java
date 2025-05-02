@@ -1,5 +1,11 @@
 package com.smartcalendar.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.smartcalendar.model.Event;
+import com.smartcalendar.model.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -8,16 +14,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class ChatGPTService {
 
     private static final Logger logger = LoggerFactory.getLogger(ChatGPTService.class);
+    private final ObjectMapper objectMapper;
 
     @Value("${chatgpt.api.url}")
     private String apiUrl;
@@ -26,7 +31,11 @@ public class ChatGPTService {
     private String apiKey;
 
     private final WebClient webClient = WebClient.builder().build();
-    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public ChatGPTService() {
+        this.objectMapper = new ObjectMapper();
+        this.objectMapper.registerModule(new JavaTimeModule());
+    }
 
     public String askChatGPT(String question, String model) {
         logger.info("Sending request to ChatGPT API with question: {}", question);
@@ -71,6 +80,65 @@ public class ChatGPTService {
         } catch (Exception e) {
             logger.error("Unexpected error while communicating with ChatGPT API", e);
             throw new RuntimeException("Unexpected error: " + e.getMessage());
+        }
+    }
+
+    public Map<String, List<?>> generateEventsAndTasks(String userQuery) {
+        logger.info("Generating events and tasks for query: {}", userQuery);
+
+        String prompt = "Based on the user's query: \"" + userQuery + "\", generate a list of events and tasks. " +
+                "Respond in JSON format with the following structure: " +
+                "{ \"events\": [{ \"title\": \"string\", \"start\": \"ISO 8601 datetime\", \"end\": \"ISO 8601 datetime\", \"location\": \"string\" }], " +
+                "\"tasks\": [{ \"title\": \"string\", \"description\": \"string\", \"completed\": false }] }";
+
+        String response = askChatGPT(prompt, "gpt-3.5-turbo");
+
+        try {
+            return objectMapper.readValue(response, new TypeReference<>() {});
+        } catch (Exception e) {
+            logger.error("Error parsing ChatGPT response into events and tasks", e);
+            throw new RuntimeException("Failed to parse ChatGPT response: " + e.getMessage());
+        }
+    }
+
+    public List<Object> convertToEntities(Map<String, List<?>> data) {
+        logger.info("Converting generated data into Event and Task entities");
+
+        List<Object> entities = new ArrayList<>();
+
+        List<Map<String, Object>> events = (List<Map<String, Object>>) data.get("events");
+        List<Map<String, Object>> tasks = (List<Map<String, Object>>) data.get("tasks");
+
+        if (events != null) {
+            for (Map<String, Object> eventData : events) {
+                Event event = objectMapper.convertValue(eventData, Event.class);
+                entities.add(event);
+            }
+        }
+
+        if (tasks != null) {
+            for (Map<String, Object> taskData : tasks) {
+                Task task = objectMapper.convertValue(taskData, Task.class);
+                entities.add(task);
+            }
+        }
+
+        return entities;
+    }
+
+    public Map<String, List<?>> processTranscript(String transcript) {
+        String prompt = "Based on the following transcript: \"" + transcript + "\", generate a list of events and tasks. " +
+            "Respond strictly in JSON format with the following structure: " +
+            "{ \"events\": [{ \"title\": \"string\", \"start\": \"ISO 8601 datetime\", \"end\": \"ISO 8601 datetime\", \"location\": \"string\" }], " +
+            "\"tasks\": [{ \"title\": \"string\", \"description\": \"string\", \"completed\": false }] }. " +
+            "Do not include any additional text or explanation.";
+
+        String response = askChatGPT(prompt, "gpt-3.5-turbo");
+
+        try {
+            return objectMapper.readValue(response, new TypeReference<>() {});
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to process ChatGPT response: " + e.getMessage());
         }
     }
 }
