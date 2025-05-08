@@ -6,8 +6,4 @@ import org.springframework.boot.test.context.SpringBootTest;
 @SpringBootTest
 class SmartCalendarApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
-
 }
