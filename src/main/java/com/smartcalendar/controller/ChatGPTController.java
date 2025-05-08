@@ -31,10 +31,30 @@ public class ChatGPTController {
     }
 
     @PostMapping("/generate/entities")
-    public ResponseEntity<List<Object>> generateEntities(@RequestBody Map<String, String> requestBody) {
+    public ResponseEntity<?> generateEntities(@RequestBody Map<String, String> requestBody) {
         String userQuery = requestBody.get("query");
-        Map<String, List<?>> data = chatGPTService.generateEventsAndTasks(userQuery);
-        List<Object> entities = chatGPTService.convertToEntities(data);
-        return ResponseEntity.ok(entities);
+
+        try {
+            Map<String, Object> response = chatGPTService.processTranscript(userQuery);
+
+            if (response.containsKey("error")) {
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            if (!(response.get("events") instanceof List) || !(response.get("tasks") instanceof List)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid response format from ChatGPT"));
+            }
+
+            Map<String, List<?>> validResponse = Map.of(
+                    "events", (List<?>) response.get("events"),
+                    "tasks", (List<?>) response.get("tasks")
+            );
+
+            List<Object> entities = chatGPTService.convertToEntities(validResponse);
+            return ResponseEntity.ok(entities);
+
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

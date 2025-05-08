@@ -102,7 +102,7 @@ public class ChatGPTService {
     }
 
     public List<Object> convertToEntities(Map<String, List<?>> data) {
-        logger.info("Converting generated data into Event and Task entities");
+        logger.info("Converting data to entities: {}", data);
 
         List<Object> entities = new ArrayList<>();
 
@@ -126,17 +126,22 @@ public class ChatGPTService {
         return entities;
     }
 
-    public Map<String, List<?>> processTranscript(String transcript) {
-        String prompt = "Based on the following transcript: \"" + transcript + "\", generate a list of events and tasks. " +
-            "Respond strictly in JSON format with the following structure: " +
-            "{ \"events\": [{ \"title\": \"string\", \"start\": \"ISO 8601 datetime\", \"end\": \"ISO 8601 datetime\", \"location\": \"string\" }], " +
-            "\"tasks\": [{ \"title\": \"string\", \"description\": \"string\", \"completed\": false }] }. " +
-            "Do not include any additional text or explanation.";
+    public Map<String, Object> processTranscript(String transcript) {
+        String prompt = "Based on the following transcript: \"" + transcript + "\", determine if it is related to creating events or tasks. " +
+                "If it is, generate a list of events and tasks strictly in JSON format with the following structure: " +
+                "{ \"events\": [{ \"title\": \"string\", \"start\": \"ISO 8601 datetime\", \"end\": \"ISO 8601 datetime\", \"location\": \"string\" }], " +
+                "\"tasks\": [{ \"title\": \"string\", \"description\": \"string\", \"completed\": false }] }. " +
+                "If the transcript is not related to events or tasks, respond with: { \"error\": \"Unrelated request\" }. " +
+                "Do not include any additional text or explanation.";
 
         String response = askChatGPT(prompt, "gpt-3.5-turbo");
 
         try {
-            return objectMapper.readValue(response, new TypeReference<>() {});
+            Map<String, Object> result = objectMapper.readValue(response, new TypeReference<Map<String, Object>>() {});
+            if (result.containsKey("error")) {
+                logger.warn("ChatGPT returned an error: {}", result);
+            }
+            return result;
         } catch (Exception e) {
             throw new RuntimeException("Failed to process ChatGPT response: " + e.getMessage());
         }

@@ -23,13 +23,14 @@ public class AudioController {
         try {
             String transcript = audioProcessingService.transcribeAudio(file);
 
-            Map<String, List<?>> response = chatGPTService.processTranscript(transcript);
+            Map<String, Object> response = chatGPTService.processTranscript(transcript);
 
             if (response.containsKey("error")) {
                 return ResponseEntity.badRequest().body(response);
             }
 
-            List<Object> entities = chatGPTService.convertToEntities(response);
+            Map<String, List<?>> data = (Map<String, List<?>>) (Map) response;
+            List<Object> entities = chatGPTService.convertToEntities(data);
             return ResponseEntity.ok(entities);
 
         } catch (Exception e) {
