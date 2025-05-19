@@ -129,8 +129,8 @@ public class ChatGPTService {
     public Map<String, Object> processTranscript(String transcript) {
         String prompt = "Based on the following transcript: \"" + transcript + "\", determine if it is related to creating events or tasks. " +
                 "If it is, generate a list of events and tasks strictly in JSON format with the following structure: " +
-                "{ \"events\": [{ \"title\": \"string\", \"start\": \"ISO 8601 datetime\", \"end\": \"ISO 8601 datetime\", \"location\": \"string\" }], " +
-                "\"tasks\": [{ \"title\": \"string\", \"description\": \"string\", \"completed\": false }] }. " +
+                "{ \"events\": [{ \"title\": \"string\", \"start\": \"ISO 8601 datetime\", \"end\": \"ISO 8601 datetime\", \"location\": \"string\", \"description\": \"string\", \"type\": \"string\" }], " +
+                "\"tasks\": [{ \"title\": \"string\", \"description\": \"string\", \"completed\": false, \"dueDate\": \"ISO 8601 date\" }] }. " +
                 "If the transcript is not related to events or tasks, respond with: { \"error\": \"Unrelated request\" }. " +
                 "Do not include any additional text or explanation.";
 

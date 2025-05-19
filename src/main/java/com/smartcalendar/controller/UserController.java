@@ -1,5 +1,6 @@
 package com.smartcalendar.controller;
 
+import com.smartcalendar.model.Event;
 import com.smartcalendar.model.Task;
 import com.smartcalendar.model.User;
 import com.smartcalendar.service.UserService;
@@ -59,6 +60,20 @@ public class UserController {
         return ResponseEntity.ok(tasks);
     }
 
+    @GetMapping("/{userId}/events")
+    public ResponseEntity<List<Event>> getEventsByUserId(@PathVariable Long userId) {
+        List<Event> events = userService.findEventsByUserId(userId);
+        return ResponseEntity.ok(events);
+    }
+
+    @PostMapping("/{userId}/events")
+    public ResponseEntity<Event> createEvent(@PathVariable Long userId, @RequestBody Event event) {
+        User user = userService.findUserById(userId);
+        event.setOrganizer(user);
+        Event createdEvent = userService.createEvent(event);
+        return ResponseEntity.ok(createdEvent);
+    }
+
     @PostMapping("/{userId}/tasks")
     public ResponseEntity<Task> createTask(@PathVariable Long userId, @RequestBody Task task) {
         User user = userService.findUserById(userId);
@@ -72,4 +87,5 @@ public class UserController {
         userService.deleteTask(taskId);
         return ResponseEntity.noContent().build();
     }
+
 }

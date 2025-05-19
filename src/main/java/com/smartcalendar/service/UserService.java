@@ -1,7 +1,9 @@
 package com.smartcalendar.service;
 
+import com.smartcalendar.model.Event;
 import com.smartcalendar.model.Task;
 import com.smartcalendar.model.User;
+import com.smartcalendar.repository.EventRepository;
 import com.smartcalendar.repository.TaskRepository;
 import com.smartcalendar.repository.UserRepository;
 import jakarta.validation.constraints.Email;
@@ -21,6 +23,7 @@ import java.util.List;
 public class UserService {
     private final UserRepository userRepository;
     private final TaskRepository taskRepository;
+    private final EventRepository eventRepository;
     private final PasswordEncoder passwordEncoder;
 
     public User createUser(User user) {
@@ -119,5 +122,13 @@ public class UserService {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
         return task.getDescription();
+    }
+
+    public List<Event> findEventsByUserId(Long userId) {
+        return eventRepository.findByOrganizerId(userId);
+    }
+
+    public Event createEvent(Event event) {
+        return eventRepository.save(event);
     }
 }
