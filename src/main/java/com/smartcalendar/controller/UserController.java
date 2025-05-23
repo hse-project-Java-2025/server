@@ -1,10 +1,13 @@
 package com.smartcalendar.controller;
 
+import com.smartcalendar.model.Event;
 import com.smartcalendar.model.Task;
 import com.smartcalendar.model.User;
 import com.smartcalendar.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -48,15 +51,35 @@ public class UserController {
     }
 
     @PostMapping
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        User createdUser = userService.createUser(user);
-        return ResponseEntity.ok(createdUser);
+    public ResponseEntity<?> createUser(@RequestBody User user) {
+        try {
+            User createdUser = userService.createUser(user);
+            return ResponseEntity.ok(createdUser);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(Map.of("error", ex.getMessage()));
+        }
     }
 
     @GetMapping("/{userId}/tasks")
     public ResponseEntity<List<Task>> getTasksByUserId(@PathVariable Long userId) {
         List<Task> tasks = userService.findTasksByUserId(userId);
         return ResponseEntity.ok(tasks);
+    }
+
+    @GetMapping("/{userId}/events")
+    public ResponseEntity<List<Event>> getEventsByUserId(@PathVariable Long userId) {
+        List<Event> events = userService.findEventsByUserId(userId);
+        return ResponseEntity.ok(events);
+    }
+
+    @PostMapping("/{userId}/events")
+    public ResponseEntity<Event> createEvent(@PathVariable Long userId, @RequestBody Event event) {
+        User user = userService.findUserById(userId);
+        event.setOrganizer(user);
+        Event createdEvent = userService.createEvent(event);
+        return ResponseEntity.ok(createdEvent);
     }
 
     @PostMapping("/{userId}/tasks")
@@ -72,4 +95,17 @@ public class UserController {
         userService.deleteTask(taskId);
         return ResponseEntity.noContent().build();
     }
+
+    @GetMapping("/me")
+    public ResponseEntity<Map<String, Object>> getCurrentUserInfo(@AuthenticationPrincipal UserDetails userDetails) {
+        User user = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        Map<String, Object> result = Map.of(
+                "id", user.getId(),
+                "username", user.getUsername(),
+                "email", user.getEmail()
+        );
+        return ResponseEntity.ok(result);
+    }
+
 }
