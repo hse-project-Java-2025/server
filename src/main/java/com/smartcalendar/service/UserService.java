@@ -1,12 +1,12 @@
 package com.smartcalendar.service;
 
+import com.smartcalendar.dto.DailyTaskDto;
 import com.smartcalendar.model.Event;
 import com.smartcalendar.model.Task;
 import com.smartcalendar.model.User;
 import com.smartcalendar.repository.EventRepository;
 import com.smartcalendar.repository.TaskRepository;
 import com.smartcalendar.repository.UserRepository;
-import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -18,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -58,8 +60,14 @@ public class UserService {
         return taskRepository.save(task);
     }
 
-    public void deleteTask(Long taskId) {
+    @Transactional
+    public void deleteTask(UUID taskId) {
         taskRepository.deleteById(taskId);
+    }
+
+    @Transactional
+    public void deleteEvent(UUID eventId) {
+        eventRepository.deleteById(eventId);
     }
 
     public boolean existsByUsername(String username) {
@@ -117,15 +125,29 @@ public class UserService {
     }
 
     @Transactional
-    public Task updateTaskStatus(Long taskId, boolean completed) {
+    public Task updateTaskStatus(UUID taskId, boolean completed) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
         task.setCompleted(completed);
         return taskRepository.save(task);
     }
 
+    @Transactional
+    public void updateEvent(UUID eventId, Event event) {
+        Event existingEvent = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+        existingEvent.setTitle(event.getTitle());
+        existingEvent.setDescription(event.getDescription());
+        existingEvent.setStart(event.getStart());
+        existingEvent.setEnd(event.getEnd());
+        existingEvent.setLocation(event.getLocation());
+        existingEvent.setType(event.getType());
+        existingEvent.setCreationTime(event.getCreationTime());
+        eventRepository.save(existingEvent);
+    }
+
     @Transactional(readOnly = true)
-    public String getTaskDescription(Long taskId) {
+    public String getTaskDescription(UUID taskId) {
         Task task = taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
         return task.getDescription();
@@ -141,5 +163,30 @@ public class UserService {
 
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username);
+    }
+
+    public List<DailyTaskDto> findAllEventsAsDailyTaskDto(Long userId) {
+        List<Event> events = findEventsByUserId(userId);
+        return events.stream().map(event -> new DailyTaskDto(
+                event.getId(),
+                event.getTitle(),
+                false,
+                event.getType(),
+                event.getCreationTime(),
+                event.getDescription(),
+                event.getStart() != null ? event.getStart().toLocalTime() : null,
+                event.getEnd() != null ? event.getEnd().toLocalTime() : null,
+                event.getStart() != null ? event.getStart().toLocalDate() : null
+        )).collect(Collectors.toList());
+    }
+
+    public Task getTaskById(UUID taskId) {
+        return taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+    }
+
+    public Event getEventById(UUID eventId) {
+        return eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
     }
 }
