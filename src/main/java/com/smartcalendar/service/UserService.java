@@ -60,8 +60,14 @@ public class UserService {
         return taskRepository.save(task);
     }
 
+    @Transactional
     public void deleteTask(UUID taskId) {
         taskRepository.deleteById(taskId);
+    }
+
+    @Transactional
+    public void deleteEvent(UUID eventId) {
+        eventRepository.deleteById(eventId);
     }
 
     public boolean existsByUsername(String username) {
@@ -126,6 +132,20 @@ public class UserService {
         return taskRepository.save(task);
     }
 
+    @Transactional
+    public void updateEvent(UUID eventId, Event event) {
+        Event existingEvent = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+        existingEvent.setTitle(event.getTitle());
+        existingEvent.setDescription(event.getDescription());
+        existingEvent.setStart(event.getStart());
+        existingEvent.setEnd(event.getEnd());
+        existingEvent.setLocation(event.getLocation());
+        existingEvent.setType(event.getType());
+        existingEvent.setCreationTime(event.getCreationTime());
+        eventRepository.save(existingEvent);
+    }
+
     @Transactional(readOnly = true)
     public String getTaskDescription(UUID taskId) {
         Task task = taskRepository.findById(taskId)
@@ -150,7 +170,7 @@ public class UserService {
         return events.stream().map(event -> new DailyTaskDto(
                 event.getId(),
                 event.getTitle(),
-                false, // isComplete — если нужно, добавьте логику
+                false,
                 event.getType(),
                 event.getCreationTime(),
                 event.getDescription(),
@@ -163,5 +183,10 @@ public class UserService {
     public Task getTaskById(UUID taskId) {
         return taskRepository.findById(taskId)
                 .orElseThrow(() -> new RuntimeException("Task not found"));
+    }
+
+    public Event getEventById(UUID eventId) {
+        return eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
     }
 }

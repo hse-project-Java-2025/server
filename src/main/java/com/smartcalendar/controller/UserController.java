@@ -48,7 +48,7 @@ public class UserController {
     }
 
     @PatchMapping("/tasks/{taskId}/status")
-    public ResponseEntity<Task> updateTaskStatus(
+    public ResponseEntity<Void> updateTaskStatus(
             @PathVariable UUID taskId,
             @RequestBody Map<String, Boolean> requestBody,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -59,8 +59,8 @@ public class UserController {
             return ResponseEntity.status(403).build();
         }
         boolean completed = requestBody.get("completed");
-        Task updatedTask = userService.updateTaskStatus(taskId, completed);
-        return ResponseEntity.ok(updatedTask);
+        userService.updateTaskStatus(taskId, completed);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/tasks/{taskId}/description")
@@ -116,7 +116,7 @@ public class UserController {
     }
 
     @PostMapping("/{userId}/events")
-    public ResponseEntity<Event> createEvent(
+    public ResponseEntity<Void> createEvent(
             @PathVariable Long userId,
             @RequestBody Event event,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -126,12 +126,41 @@ public class UserController {
             return ResponseEntity.status(403).build();
         }
         event.setOrganizer(currentUser);
-        Event createdEvent = userService.createEvent(event);
-        return ResponseEntity.ok(createdEvent);
+        userService.createEvent(event);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/events/{eventId}")
+    public ResponseEntity<Void> deleteEvent(
+            @PathVariable UUID eventId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Event event = userService.getEventById(eventId);
+        User currentUser = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!event.getOrganizer().getId().equals(currentUser.getId())) {
+            return ResponseEntity.status(403).build();
+        }
+        userService.deleteEvent(eventId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/events/{eventId}")
+    public ResponseEntity<Void> updateEvent(
+            @PathVariable UUID eventId,
+            @RequestBody Event event,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Event existingEvent = userService.getEventById(eventId);
+        User currentUser = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!existingEvent.getOrganizer().getId().equals(currentUser.getId())) {
+            return ResponseEntity.status(403).build();
+        }
+        userService.updateEvent(eventId, event);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{userId}/tasks")
-    public ResponseEntity<Task> createTask(
+    public ResponseEntity<Void> createTask(
             @PathVariable Long userId,
             @RequestBody Task task,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -141,8 +170,8 @@ public class UserController {
             return ResponseEntity.status(403).build();
         }
         task.setUser(currentUser);
-        Task createdTask = userService.createTask(task);
-        return ResponseEntity.ok(createdTask);
+        userService.createTask(task);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/tasks/{taskId}")
