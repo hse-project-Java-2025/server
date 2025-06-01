@@ -1,6 +1,7 @@
 package com.smartcalendar.controller;
 
 import com.smartcalendar.dto.DailyTaskDto;
+import com.smartcalendar.dto.StatisticsData;
 import com.smartcalendar.model.Event;
 import com.smartcalendar.model.Task;
 import com.smartcalendar.model.User;
@@ -116,7 +117,7 @@ public class UserController {
     }
 
     @PostMapping("/{userId}/events")
-    public ResponseEntity<Void> createEvent(
+    public ResponseEntity<Map<String, Object>> createEvent(
             @PathVariable Long userId,
             @RequestBody Event event,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -126,22 +127,9 @@ public class UserController {
             return ResponseEntity.status(403).build();
         }
         event.setOrganizer(currentUser);
-        userService.createEvent(event);
-        return ResponseEntity.ok().build();
-    }
-
-    @DeleteMapping("/events/{eventId}")
-    public ResponseEntity<Void> deleteEvent(
-            @PathVariable UUID eventId,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        Event event = userService.getEventById(eventId);
-        User currentUser = userService.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        if (!event.getOrganizer().getId().equals(currentUser.getId())) {
-            return ResponseEntity.status(403).build();
-        }
-        userService.deleteEvent(eventId);
-        return ResponseEntity.noContent().build();
+        event.setId(null);
+        Event createdEvent = userService.createEvent(event);
+        return ResponseEntity.ok(Map.of("id", createdEvent.getId()));
     }
 
     @PatchMapping("/events/{eventId}")
@@ -211,5 +199,62 @@ public class UserController {
         }
         List<DailyTaskDto> dailyTasks = userService.findAllEventsAsDailyTaskDto(userId);
         return ResponseEntity.ok(dailyTasks);
+    }
+
+    @PatchMapping("/events/{eventId}/status")
+    public ResponseEntity<Event> updateEventStatus(
+            @PathVariable UUID eventId,
+            @RequestBody Map<String, Boolean> requestBody,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Event event = userService.getEventById(eventId);
+        User currentUser = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!event.getOrganizer().getId().equals(currentUser.getId())) {
+            return ResponseEntity.status(403).build();
+        }
+        boolean completed = requestBody.get("completed");
+        Event updatedEvent = userService.updateEventStatus(eventId, completed);
+        return ResponseEntity.ok(updatedEvent);
+    }
+
+    @DeleteMapping("/events/{eventId}")
+    public ResponseEntity<Map<String, UUID>> deleteEventById(
+            @PathVariable UUID eventId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Event event = userService.getEventById(eventId);
+        User currentUser = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!event.getOrganizer().getId().equals(currentUser.getId())) {
+            return ResponseEntity.status(403).build();
+        }
+        UUID deletedId = userService.deleteEventById(eventId);
+        return ResponseEntity.ok(Map.of("id", deletedId));
+    }
+
+    @GetMapping("/{userId}/statistics")
+    public ResponseEntity<StatisticsData> getStatistics(
+            @PathVariable Long userId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!currentUser.getId().equals(userId)) {
+            return ResponseEntity.status(403).build();
+        }
+        StatisticsData statistics = userService.getStatistics(userId);
+        return ResponseEntity.ok(statistics);
+    }
+
+    @PutMapping("/{userId}/statistics")
+    public ResponseEntity<Void> updateStatistics(
+            @PathVariable Long userId,
+            @RequestBody StatisticsData statisticsData,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        if (!currentUser.getId().equals(userId)) {
+            return ResponseEntity.status(403).build();
+        }
+        userService.updateStatistics(userId, statisticsData);
+        return ResponseEntity.ok().build();
     }
 }

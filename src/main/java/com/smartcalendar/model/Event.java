@@ -31,11 +31,13 @@ public class Event {
     private String location;
 
     @Enumerated(EnumType.STRING)
-    private EventType type; // Аналог DailyTaskType
+    private EventType type;
 
     private LocalDateTime creationTime = LocalDateTime.now();
 
     @ManyToOne
     @JoinColumn(name = "organizer_id")
     private User organizer;
+
+    private boolean completed = false;
 }

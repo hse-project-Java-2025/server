@@ -1,6 +1,7 @@
 package com.smartcalendar.service;
 
 import com.smartcalendar.dto.DailyTaskDto;
+import com.smartcalendar.dto.StatisticsData;
 import com.smartcalendar.model.Event;
 import com.smartcalendar.model.Task;
 import com.smartcalendar.model.User;
@@ -28,6 +29,7 @@ public class UserService {
     private final TaskRepository taskRepository;
     private final EventRepository eventRepository;
     private final PasswordEncoder passwordEncoder;
+    private final StatisticsService statisticsService;
 
     public User createUser(User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
@@ -82,7 +84,7 @@ public class UserService {
     public boolean changeCredentials(String currentUsername, String currentPassword, String newUsername, String newPassword) {
         User user = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-    
+
         if (passwordEncoder.matches(currentPassword, user.getPassword())) {
             if (newUsername != null && !newUsername.isEmpty()) {
                 user.setUsername(newUsername);
@@ -158,6 +160,7 @@ public class UserService {
     }
 
     public Event createEvent(Event event) {
+        event.setId(null);
         return eventRepository.save(event);
     }
 
@@ -170,7 +173,7 @@ public class UserService {
         return events.stream().map(event -> new DailyTaskDto(
                 event.getId(),
                 event.getTitle(),
-                false,
+                event.isCompleted(),
                 event.getType(),
                 event.getCreationTime(),
                 event.getDescription(),
@@ -188,5 +191,28 @@ public class UserService {
     public Event getEventById(UUID eventId) {
         return eventRepository.findById(eventId)
                 .orElseThrow(() -> new RuntimeException("Event not found"));
+    }
+
+    @Transactional
+    public Event updateEventStatus(UUID eventId, boolean completed) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+        event.setCompleted(completed);
+        return eventRepository.save(event);
+    }
+
+    @Transactional
+    public UUID deleteEventById(UUID eventId) {
+        eventRepository.deleteById(eventId);
+        return eventId;
+    }
+
+    public StatisticsData getStatistics(Long userId) {
+        return statisticsService.getStatistics(userId);
+    }
+
+    @Transactional
+    public void updateStatistics(Long userId, StatisticsData statisticsData) {
+        statisticsService.updateStatistics(userId, statisticsData);
     }
 }
