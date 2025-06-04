@@ -27,7 +27,7 @@ public class StatisticsService {
                     0L,
                     new TodayTimeDto(0, 0),
                     new ContinuesSuccessDaysDto(0, 0),
-                    new AverageDayTimeDto(0, 0)
+                    new AverageDayTimeDto(0, 1)
             );
         }
 

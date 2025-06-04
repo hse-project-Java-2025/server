@@ -215,4 +215,48 @@ public class UserService {
     public void updateStatistics(Long userId, StatisticsData statisticsData) {
         statisticsService.updateStatistics(userId, statisticsData);
     }
+
+    @Transactional
+    public Task createTaskWithCustomId(Task task) {
+        if (task.getId() != null && taskRepository.existsById(task.getId())) {
+            throw new IllegalArgumentException("Task with this id already exists");
+        }
+        return taskRepository.save(task);
+    }
+
+    @Transactional
+    public void editTask(UUID taskId, Task task) {
+        Task existingTask = taskRepository.findById(taskId)
+                .orElseThrow(() -> new RuntimeException("Task not found"));
+        existingTask.setTitle(task.getTitle());
+        existingTask.setDescription(task.getDescription());
+        existingTask.setCompleted(task.isCompleted());
+        existingTask.setDueDateTime(task.getDueDateTime());
+        existingTask.setAllDay(task.getAllDay());
+        existingTask.setCreationTime(task.getCreationTime());
+        taskRepository.save(existingTask);
+    }
+
+    @Transactional
+    public Event createEventWithCustomId(Event event) {
+        if (event.getId() != null && eventRepository.existsById(event.getId())) {
+            throw new IllegalArgumentException("Event with this id already exists");
+        }
+        return eventRepository.save(event);
+    }
+
+    @Transactional
+    public void editEvent(UUID eventId, Event event) {
+        Event existingEvent = eventRepository.findById(eventId)
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+        existingEvent.setTitle(event.getTitle());
+        existingEvent.setDescription(event.getDescription());
+        existingEvent.setStart(event.getStart());
+        existingEvent.setEnd(event.getEnd());
+        existingEvent.setLocation(event.getLocation());
+        existingEvent.setType(event.getType());
+        existingEvent.setCreationTime(event.getCreationTime());
+        existingEvent.setCompleted(event.isCompleted());
+        eventRepository.save(existingEvent);
+    }
 }
