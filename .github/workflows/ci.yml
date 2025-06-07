@@ -34,7 +34,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build and test
-        run: ./gradlew clean build
+        run: ./gradlew clean build --info --console=plain
 
       - name: Generate license report
         run: ./gradlew generateLicenseReport
