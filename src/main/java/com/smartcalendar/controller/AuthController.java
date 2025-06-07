@@ -1,9 +1,13 @@
 package com.smartcalendar.controller;
 
+import com.smartcalendar.dto.RegistrationRequest;
 import com.smartcalendar.model.User;
 import com.smartcalendar.service.JwtService;
+import com.smartcalendar.service.StatisticsService;
 import com.smartcalendar.service.UserService;
 import com.smartcalendar.dto.ChangeCredentialsRequest;
+import com.smartcalendar.dto.StatisticsData;
+import com.smartcalendar.dto.AverageDayTimeDto;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -21,6 +25,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -30,6 +36,7 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
     private final UserService userService;
+    private final StatisticsService statisticsService;
 
     @Operation(
             summary = "User authentication",
@@ -44,16 +51,16 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody User user) {
         logger.info("Attempting to authenticate user: {}", user.getUsername());
-    
+
         if ((user.getUsername() == null && user.getEmail() == null) || user.getPassword() == null) {
             logger.warn("Username/email or password is null. Username: {}, Email: {}", user.getUsername(), user.getEmail());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Username/email and password are required");
         }
-    
+
         try {
             logger.debug("Determining if login is by username or email: {}", user.getUsername() != null ? user.getUsername() : user.getEmail());
             UserDetails userDetails;
-    
+
             try {
                 if (user.getUsername() != null) {
                     userDetails = userService.loadUserByUsername(user.getUsername());
@@ -64,17 +71,17 @@ public class AuthController {
                 logger.error("User not found: {}", user.getUsername() != null ? user.getUsername() : user.getEmail());
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Invalid username or email");
             }
-    
+
             Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(userDetails.getUsername(), user.getPassword())
+                    new UsernamePasswordAuthenticationToken(userDetails.getUsername(), user.getPassword())
             );
-    
+
             logger.debug("Authentication successful for user: {}", userDetails.getUsername());
             SecurityContextHolder.getContext().setAuthentication(authentication);
-    
+
             String jwt = jwtService.generateToken(userDetails.getUsername());
             logger.info("JWT token generated for user: {}", userDetails.getUsername());
-    
+
             return ResponseEntity.ok(jwt);
         } catch (BadCredentialsException e) {
             logger.error("Invalid credentials for user: {}", user.getUsername() != null ? user.getUsername() : user.getEmail());
@@ -83,7 +90,7 @@ public class AuthController {
             logger.error("Unexpected error during authentication for user: {}", user.getUsername() != null ? user.getUsername() : user.getEmail(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An unexpected error occurred");
         }
-}
+    }
 
     @Operation(
             summary = "New user signup",
@@ -95,29 +102,40 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
     @PostMapping("/signup")
-    public ResponseEntity<User> registerUser(@RequestBody User user) {
-        logger.info("Attempting to register user: {}", user.getUsername());
+    public ResponseEntity<User> registerUser(@RequestBody RegistrationRequest request) {
+        logger.info("Attempting to register user: {}", request.getUsername());
 
-        if (user.getUsername() == null || user.getPassword() == null || user.getEmail() == null) {
-            logger.warn("Missing required fields for registration. Username: {}, Email: {}", user.getUsername(), user.getEmail());
+        if (request.getUsername() == null || request.getPassword() == null || request.getEmail() == null || request.getFirstDay() == null) {
+            logger.warn("Missing required fields for registration. Username: {}, Email: {}, FirstDay: {}", request.getUsername(), request.getEmail(), request.getFirstDay());
             return ResponseEntity.badRequest().body(null);
         }
 
-        if (userService.existsByUsername(user.getUsername())) {
-            logger.warn("Username already exists: {}", user.getUsername());
+        if (userService.existsByUsername(request.getUsername())) {
+            logger.warn("Username already exists: {}", request.getUsername());
             return ResponseEntity.badRequest().body(null);
         }
-        if (userService.existsByEmail(user.getEmail())) {
-            logger.warn("Email already exists: {}", user.getEmail());
+        if (userService.existsByEmail(request.getEmail())) {
+            logger.warn("Email already exists: {}", request.getEmail());
             return ResponseEntity.badRequest().body(null);
         }
 
         try {
+            User user = new User();
+            user.setUsername(request.getUsername());
+            user.setEmail(request.getEmail());
+            user.setPassword(request.getPassword());
             User createdUser = userService.createUser(user);
-            logger.info("User registered successfully: {}", user.getUsername());
+
+            StatisticsData statisticsData = new StatisticsData();
+            statisticsData.setAverageDayTime(
+                    new AverageDayTimeDto(0, LocalDate.parse(request.getFirstDay()))
+            );
+            statisticsService.updateStatistics(createdUser.getId(), statisticsData);
+
+            logger.info("User registered successfully: {}", request.getUsername());
             return ResponseEntity.ok(createdUser);
         } catch (Exception e) {
-            logger.error("Error during user registration: {}", user.getUsername(), e);
+            logger.error("Error during user registration: {}", request.getUsername(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
@@ -130,7 +148,7 @@ public class AuthController {
                 request.getNewUsername(),
                 request.getNewPassword()
         );
-    
+
         if (success) {
             return ResponseEntity.ok("Credentials updated successfully");
         }
