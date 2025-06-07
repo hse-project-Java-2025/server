@@ -27,7 +27,7 @@ public class StatisticsService {
                     0L,
                     new TodayTimeDto(0, 0),
                     new ContinuesSuccessDaysDto(0, 0),
-                    new AverageDayTimeDto(0, 1)
+                    new AverageDayTimeDto(0, null)
             );
         }
 
@@ -36,7 +36,7 @@ public class StatisticsService {
                 stats.getWeekTime(),
                 new TodayTimeDto(stats.getTodayPlanned(), stats.getTodayCompleted()),
                 new ContinuesSuccessDaysDto(stats.getContinuesRecord(), stats.getContinuesNow()),
-                new AverageDayTimeDto(stats.getAverageWorkMinutes(), stats.getAverageTotalDays())
+                new AverageDayTimeDto(stats.getAverageWorkMinutes(), stats.getFirstDay())
         );
     }
 
@@ -65,7 +65,7 @@ public class StatisticsService {
         stats.setContinuesNow(statisticsData.getContinuesSuccessDays().getNow());
 
         stats.setAverageWorkMinutes(statisticsData.getAverageDayTime().getTotalWorkMinutes());
-        stats.setAverageTotalDays(statisticsData.getAverageDayTime().getTotalDays());
+        stats.setFirstDay(statisticsData.getAverageDayTime().getFirstDay());
 
         statisticsRepository.save(stats);
     }
@@ -123,12 +123,12 @@ public class StatisticsService {
                 .orElse(null);
 
         if (stats == null) {
-            return new AverageDayTimeDto(0, 0);
+            return new AverageDayTimeDto(0, null);
         }
 
         return new AverageDayTimeDto(
                 stats.getAverageWorkMinutes(),
-                stats.getAverageTotalDays()
+                stats.getFirstDay()
         );
     }
 }

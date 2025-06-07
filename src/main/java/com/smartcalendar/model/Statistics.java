@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "statistics")
 @Data
@@ -32,5 +34,5 @@ public class Statistics {
     private int continuesNow;
 
     private long averageWorkMinutes;
-    private long averageTotalDays;
+    private LocalDate firstDay;
 }

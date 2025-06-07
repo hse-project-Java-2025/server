@@ -12,5 +12,5 @@ public class StatisticsData {
     private long weekTime = 0;
     private TodayTimeDto todayTime = new TodayTimeDto(0, 0);
     private ContinuesSuccessDaysDto continuesSuccessDays = new ContinuesSuccessDaysDto(0, 0);
-    private AverageDayTimeDto averageDayTime = new AverageDayTimeDto(0, 0);
+    private AverageDayTimeDto averageDayTime = new AverageDayTimeDto(0, null);
 }

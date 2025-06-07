@@ -6,6 +6,7 @@ import com.smartcalendar.model.Event;
 import com.smartcalendar.model.Task;
 import com.smartcalendar.model.User;
 import com.smartcalendar.repository.EventRepository;
+import com.smartcalendar.repository.StatisticsRepository;
 import com.smartcalendar.repository.TaskRepository;
 import com.smartcalendar.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,6 +31,7 @@ public class UserService {
     private final EventRepository eventRepository;
     private final PasswordEncoder passwordEncoder;
     private final StatisticsService statisticsService;
+    private final StatisticsRepository statisticsRepository;
 
     public User createUser(User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
@@ -258,5 +260,20 @@ public class UserService {
         existingEvent.setCreationTime(event.getCreationTime());
         existingEvent.setCompleted(event.isCompleted());
         eventRepository.save(existingEvent);
+    }
+
+    @Transactional
+    public void deleteAllUsersAndStatistics() {
+        statisticsRepository.deleteAll();
+        userRepository.deleteAll();
+    }
+
+    @Transactional
+    public void deleteUser(Long userId) {
+        userRepository.deleteById(userId);
+    }
+
+    public Optional<User> findByEmail(String email) {
+        return userRepository.findByEmail(email);
     }
 }
