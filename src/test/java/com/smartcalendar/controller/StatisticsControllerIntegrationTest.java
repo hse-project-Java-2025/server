@@ -19,6 +19,7 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Date;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -100,5 +101,25 @@ class StatisticsControllerIntegrationTest {
         mockMvc.perform(get("/api/statistics/average-day-time"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalWorkMinutes").value(9));
+    }
+
+    @Test
+    @WithMockUser
+    void testGetStatisticsWithJsonDate() throws Exception {
+        mockAuth();
+        StatisticsData statisticsData = new StatisticsData(
+                new TotalTimeTaskTypesDto(1, 2, 3, 4),
+                5L,
+                new TodayTimeDto(6, 7),
+                new ContinuesSuccessDaysDto(8, 9),
+                new AverageDayTimeDto(10, null),
+                new Date()
+        );
+        Mockito.when(userService.getStatistics(any())).thenReturn(statisticsData);
+
+        mockMvc.perform(get("/api/users/1/statistics"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.totalTime.common").value(1))
+                .andExpect(jsonPath("$.jsonDate").exists());
     }
 }

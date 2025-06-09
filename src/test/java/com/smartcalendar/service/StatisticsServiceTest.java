@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.*;
 import java.time.LocalDate;
+import java.util.Date;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -60,6 +61,8 @@ class StatisticsServiceTest {
         assertEquals(9, data.getContinuesSuccessDays().getNow());
         assertEquals(10, data.getAverageDayTime().getTotalWorkMinutes());
         assertEquals(LocalDate.of(2024, 1, 1), data.getAverageDayTime().getFirstDay());
+        assertNotNull(data.getJsonDate()); // Новая проверка
+        assertTrue(data.getJsonDate().getTime() <= new Date().getTime()); // jsonDate не в будущем
     }
 
     @Test
@@ -69,6 +72,8 @@ class StatisticsServiceTest {
         assertNotNull(data);
         assertEquals(0, data.getTotalTime().getCommon());
         assertNull(data.getAverageDayTime().getFirstDay());
+        assertNotNull(data.getJsonDate()); // Новая проверка
+        assertTrue(data.getJsonDate().getTime() <= new Date().getTime());
     }
 
     @Test
@@ -81,7 +86,8 @@ class StatisticsServiceTest {
                 5L,
                 new TodayTimeDto(6, 7),
                 new ContinuesSuccessDaysDto(8, 9),
-                new AverageDayTimeDto(10, LocalDate.of(2024, 1, 1))
+                new AverageDayTimeDto(10, LocalDate.of(2024, 1, 1)),
+                new Date()
         );
 
         when(statisticsRepository.findByUserId(1L)).thenReturn(Optional.empty());
@@ -104,7 +110,8 @@ class StatisticsServiceTest {
                 5L,
                 new TodayTimeDto(6, 7),
                 new ContinuesSuccessDaysDto(8, 9),
-                new AverageDayTimeDto(10, LocalDate.of(2024, 1, 1))
+                new AverageDayTimeDto(10, LocalDate.of(2024, 1, 1)),
+                new Date()
         );
 
         when(statisticsRepository.findByUserId(1L)).thenReturn(Optional.of(stats));

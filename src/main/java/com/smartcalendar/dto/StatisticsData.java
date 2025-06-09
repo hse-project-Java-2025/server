@@ -4,6 +4,8 @@ import lombok.Data;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
 
+import java.util.Date;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -13,4 +15,5 @@ public class StatisticsData {
     private TodayTimeDto todayTime = new TodayTimeDto(0, 0);
     private ContinuesSuccessDaysDto continuesSuccessDays = new ContinuesSuccessDaysDto(0, 0);
     private AverageDayTimeDto averageDayTime = new AverageDayTimeDto(0, null);
+    private Date jsonDate = new Date();
 }

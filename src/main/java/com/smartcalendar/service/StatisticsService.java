@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Date;
+
 @Service
 @RequiredArgsConstructor
 public class StatisticsService {
@@ -21,13 +23,16 @@ public class StatisticsService {
         Statistics stats = statisticsRepository.findByUserId(userId)
                 .orElse(null);
 
+        Date now = new Date();
+
         if (stats == null) {
             return new StatisticsData(
                     new TotalTimeTaskTypesDto(0, 0, 0, 0),
                     0L,
                     new TodayTimeDto(0, 0),
                     new ContinuesSuccessDaysDto(0, 0),
-                    new AverageDayTimeDto(0, null)
+                    new AverageDayTimeDto(0, null),
+                    now
             );
         }
 
@@ -36,7 +41,8 @@ public class StatisticsService {
                 stats.getWeekTime(),
                 new TodayTimeDto(stats.getTodayPlanned(), stats.getTodayCompleted()),
                 new ContinuesSuccessDaysDto(stats.getContinuesRecord(), stats.getContinuesNow()),
-                new AverageDayTimeDto(stats.getAverageWorkMinutes(), stats.getFirstDay())
+                new AverageDayTimeDto(stats.getAverageWorkMinutes(), stats.getFirstDay()),
+                now
         );
     }
 
