@@ -26,6 +26,6 @@ public class Task {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    @JsonBackReference
+    @JsonBackReference(value = "user_tasks")
     private User user;
 }

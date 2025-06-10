@@ -1,7 +1,9 @@
 package com.smartcalendar.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -34,7 +36,7 @@ public class Event {
 
     @ManyToOne
     @JoinColumn(name = "organizer_id")
-    @JsonBackReference
+    @JsonBackReference(value = "organized_events")
     private User organizer;
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -43,10 +45,12 @@ public class Event {
             joinColumns = @JoinColumn(name = "event_id"),
             inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
-    @JsonManagedReference
+    //@JsonManagedReference(value = "event_tags")
+    @JsonProperty("tags")
     private List<Tag> tags;
 
     @ManyToMany(mappedBy = "events", fetch = FetchType.LAZY)
-    @JsonBackReference
+    //@JsonBackReference(value = "personal_events")
+    @JsonIgnore
     private List<User> users;
 }

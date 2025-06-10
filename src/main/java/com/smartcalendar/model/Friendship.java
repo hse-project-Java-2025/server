@@ -18,11 +18,11 @@ public class Friendship {
 
     @ManyToOne
     @JoinColumn(name = "user_id1")
-    @JsonBackReference
+    @JsonBackReference(value = "friends1")
     private User user1;
 
     @ManyToOne
     @JoinColumn(name = "user_id2")
-    @JsonBackReference
+    @JsonBackReference(value = "friends2")
     private User user2;
 }

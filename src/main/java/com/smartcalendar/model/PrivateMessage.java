@@ -26,11 +26,11 @@ public class PrivateMessage {
 
     @ManyToOne
     @JoinColumn(name = "chat_id")
-    @JsonBackReference
+    @JsonBackReference(value = "messages_in_private_chat")
     private PrivateChat chat;
 
     @ManyToOne
     @JoinColumn(name = "user_id")
-    @JsonBackReference
+    @JsonBackReference(value = "private_message_author")
     private User user;
 }

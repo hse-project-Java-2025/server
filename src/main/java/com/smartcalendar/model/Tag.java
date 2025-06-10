@@ -1,6 +1,7 @@
 package com.smartcalendar.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -22,6 +23,7 @@ public class Tag {
     private String title;
 
     @ManyToMany(mappedBy = "tags", fetch = FetchType.LAZY)
-    @JsonBackReference
+    //@JsonBackReference(value = "event_tags")
+    @JsonIgnore
     private List<Event> events;
 }

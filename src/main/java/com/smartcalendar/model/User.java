@@ -1,6 +1,7 @@
 package com.smartcalendar.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import lombok.Data;
@@ -34,39 +35,39 @@ public class User implements UserDetails {
     private String password;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference(value = "user_tasks")
     private List<Task> tasks;
 
     @OneToMany(mappedBy = "organizer", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference(value = "organized_events")
     private List<Event> organized_events;
 
     @OneToMany(mappedBy = "admin", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference(value = "admin_chats")
     private List<GroupChat> chatsWithAdminRights;
 
     @OneToMany(mappedBy = "user1", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference(value = "chats1")
     private List<PrivateChat> privateChats1;
 
     @OneToMany(mappedBy = "user2", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference(value = "chats2")
     private List<PrivateChat> privateChats2;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference(value = "group_message_author")
     private List<GroupMessage> groupMessages;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference(value = "private_message_author")
     private List<PrivateMessage> privateMessages;
 
     @OneToMany(mappedBy = "user1", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference(value = "friends1")
     private List<Friendship> friendships1;
 
     @OneToMany(mappedBy = "user2", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference(value = "friends2")
     private List<Friendship> friendships2;
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -75,7 +76,8 @@ public class User implements UserDetails {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "event_id")
     )
-    @JsonManagedReference
+    //@JsonManagedReference(value = "personal_events")
+    @JsonProperty("events")
     private List<Event> events;
 
     @ManyToMany(fetch = FetchType.LAZY)
@@ -84,7 +86,8 @@ public class User implements UserDetails {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "chat_id")
     )
-    @JsonManagedReference
+    //@JsonManagedReference(value = "common_chats")
+    @JsonProperty("group_chats")
     private List<GroupChat> groupChats;
 
     @Override

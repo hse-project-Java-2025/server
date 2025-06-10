@@ -1,6 +1,7 @@
 package com.smartcalendar.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -21,14 +22,15 @@ public class GroupChat {
 
     @ManyToOne
     @JoinColumn(name = "admin_id")
-    @JsonBackReference
+    @JsonBackReference(value = "admin_chats")
     private User admin;
 
     @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference(value = "messages_in_group_chat")
     private List<GroupMessage> messages;
 
     @ManyToMany(mappedBy = "groupChats", fetch = FetchType.LAZY)
-    @JsonBackReference
+    //@JsonBackReference(value = "common_chats")
+    @JsonIgnore
     private List<User> users;
 }

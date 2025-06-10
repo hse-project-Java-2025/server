@@ -21,15 +21,15 @@ public class PrivateChat {
 
     @ManyToOne
     @JoinColumn(name = "user_id1")
-    @JsonBackReference
+    @JsonBackReference(value = "chats1")
     private User user1;
 
     @ManyToOne
     @JoinColumn(name = "user_id2")
-    @JsonBackReference
+    @JsonBackReference(value = "chats2")
     private User user2;
 
     @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL, orphanRemoval = true)
-    @JsonManagedReference
+    @JsonManagedReference(value = "messages_in_private_chat")
     private List<PrivateMessage> messages;
 }
