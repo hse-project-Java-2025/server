@@ -32,6 +32,8 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final StatisticsService statisticsService;
     private final StatisticsRepository statisticsRepository;
+    private final NotificationService notificationService;
+    private final PushNotificationService pushNotificationService;
 
     public User createUser(User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
@@ -275,5 +277,37 @@ public class UserService {
 
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    public void notifyUserAddedToEvent(User user, Event event, String deviceToken) {
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            String subject = "You have been added to event: " + event.getTitle();
+            String text = "Hello, you have been added to the event \"" + event.getTitle() + "\" by " +
+                    (event.getOrganizer() != null ? event.getOrganizer().getUsername() : "system") + ".";
+            notificationService.sendEmail(user.getEmail(), subject, text);
+        }
+        if (deviceToken != null && !deviceToken.isBlank()) {
+            notificationService.sendPush(
+                    deviceToken,
+                    "Added to event",
+                    "You have been added to event: " + event.getTitle()
+            );
+        }
+    }
+
+    public void notifyUserRemovedFromEvent(User user, Event event, String deviceToken) {
+        sendEventEmail(user, event, "You have been removed from event: ", "removed from the event");
+        notificationService.sendPush(deviceToken,
+                "Removed from event",
+                "You have been removed from event: " + event.getTitle());
+    }
+
+    private void sendEventEmail(User user, Event event, String subjectPrefix, String actionText) {
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            String subject = subjectPrefix + event.getTitle();
+            String text = "Hello, you have been " + actionText + " \"" + event.getTitle() + "\""
+                    + (event.getOrganizer() != null ? " by " + event.getOrganizer().getUsername() : "") + ".";
+            notificationService.sendEmail(user.getEmail(), subject, text);
+        }
     }
 }

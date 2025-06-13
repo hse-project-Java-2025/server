@@ -1,5 +1,6 @@
 package com.smartcalendar.controller;
 
+import com.smartcalendar.dto.AddCollaborativeEventRequest;
 import com.smartcalendar.dto.DailyTaskDto;
 import com.smartcalendar.dto.StatisticsData;
 import com.smartcalendar.model.Event;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -275,5 +277,83 @@ public class UserController {
         }
         userService.updateStatistics(userId, statisticsData);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/events/collaborative")
+    public ResponseEntity<?> addCollaborativeEvent(
+            @RequestBody AddCollaborativeEventRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Optional<User> participantOpt = userService.findByUsername(request.getLoginOrEmail());
+        if (participantOpt.isEmpty()) {
+            participantOpt = userService.findByEmail(request.getLoginOrEmail());
+        }
+        if (participantOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+        }
+        User participant = participantOpt.get();
+
+        Event event = request.getEvent();
+        event.setOrganizer(currentUser);
+        event.setId(UUID.randomUUID());
+        event.setParticipants(List.of(currentUser, participant));
+        Event savedEvent = userService.createEventWithCustomId(event);
+
+        userService.notifyUserAddedToEvent(participant, event, request.getDeviceToken());
+
+        return ResponseEntity.ok(savedEvent);
+    }
+
+    @PostMapping("/events/{eventId}/remove-participant")
+    public ResponseEntity<?> removeParticipant(
+            @PathVariable UUID eventId,
+            @RequestBody Map<String, String> requestBody,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Event event = userService.getEventById(eventId);
+        String loginOrEmail = requestBody.get("loginOrEmail");
+        String deviceToken = requestBody.get("deviceToken");
+
+        Optional<User> userOpt = userService.findByUsername(loginOrEmail);
+        if (userOpt.isEmpty()) {
+            userOpt = userService.findByEmail(loginOrEmail);
+        }
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+        }
+        User user = userOpt.get();
+        event.getParticipants().remove(user);
+        userService.notifyUserRemovedFromEvent(user, event, deviceToken);
+        userService.createEventWithCustomId(event);
+        return ResponseEntity.ok(Map.of("removed", user.getUsername()));
+    }
+
+    @PostMapping("/events/{eventId}/add-participant")
+    public ResponseEntity<?> addParticipantToEvent(
+            @PathVariable UUID eventId,
+            @RequestBody Map<String, String> requestBody,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Event event = userService.getEventById(eventId);
+
+        String loginOrEmail = requestBody.get("loginOrEmail");
+        String deviceToken = requestBody.get("deviceToken");
+
+        Optional<User> userOpt = userService.findByUsername(loginOrEmail);
+        if (userOpt.isEmpty()) {
+            userOpt = userService.findByEmail(loginOrEmail);
+        }
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+        }
+        User user = userOpt.get();
+
+        if (!event.getParticipants().contains(user)) {
+            event.getParticipants().add(user);
+            userService.createEventWithCustomId(event);
+            userService.notifyUserAddedToEvent(user, event, deviceToken);
+        }
+
+        return ResponseEntity.ok(Map.of("added", user.getUsername()));
     }
 }
