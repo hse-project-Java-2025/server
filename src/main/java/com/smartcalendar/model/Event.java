@@ -15,7 +15,7 @@ import java.util.UUID;
 @AllArgsConstructor
 public class Event {
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
+    //@GeneratedValue(strategy = GenerationType.AUTO)
     private UUID id;
 
     private String title;
@@ -31,11 +31,13 @@ public class Event {
     private String location;
 
     @Enumerated(EnumType.STRING)
-    private EventType type; // Аналог DailyTaskType
+    private EventType type;
 
     private LocalDateTime creationTime = LocalDateTime.now();
 
     @ManyToOne
     @JoinColumn(name = "organizer_id")
     private User organizer;
+
+    private boolean completed = false;
 }

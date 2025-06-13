@@ -11,6 +11,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -21,6 +22,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -30,6 +33,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(com.smartcalendar.config.TestSecurityConfig.class)
 @ActiveProfiles("test")
 @SpringJUnitConfig(AuthControllerTest.TestConfig.class)
 public class AuthControllerTest {
@@ -67,10 +71,18 @@ public class AuthControllerTest {
 
     private User testUser;
 
+    private String registrationRequestJson(String username, String email, String password, String firstDay) throws Exception {
+        return objectMapper.writeValueAsString(Map.of(
+                "username", username,
+                "email", email,
+                "password", password,
+                "firstDay", firstDay
+        ));
+    }
+
     @BeforeEach
     void setUp() {
-        // Cleanup and setup test user
-        userService.deleteAllUsers();
+        userService.deleteAllUsersAndStatistics();
 
         testUser = new User();
         testUser.setUsername("testuser");
@@ -81,22 +93,29 @@ public class AuthControllerTest {
 
     @Test
     void testRegisterUser_Success() throws Exception {
-        User newUser = new User();
-        newUser.setUsername("newuser");
-        newUser.setEmail("new@example.com");
-        newUser.setPassword("Password123!");
-
         mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newUser)))
+                        .content(registrationRequestJson("newuser", "new@example.com", "Password123!", "2025-06-07")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("newuser"))
                 .andExpect(jsonPath("$.email").value("new@example.com"));
     }
 
     @Test
+    void testRegisterUser_MissingFirstDay() throws Exception {
+        String json = objectMapper.writeValueAsString(Map.of(
+                "username", "user2",
+                "email", "user2@example.com",
+                "password", "Password123!"
+        ));
+        mockMvc.perform(post("/api/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void testLogin_Success() throws Exception {
-        // Mock authentication
         Authentication auth = new UsernamePasswordAuthenticationToken(
                 testUser.getUsername(),
                 testUser.getPassword()
@@ -107,7 +126,6 @@ public class AuthControllerTest {
         when(jwtService.generateToken(testUser.getUsername()))
                 .thenReturn("mocked.jwt.token");
 
-        // Test request
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(testUser)))
@@ -132,13 +150,11 @@ public class AuthControllerTest {
 
     @Test
     void testLogin_MissingFields() throws Exception {
-        // Missing username
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"password\":\"password123\"}"))
                 .andExpect(status().isBadRequest());
 
-        // Missing password
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"testuser\"}"))
@@ -147,14 +163,9 @@ public class AuthControllerTest {
 
     @Test
     void testRegisterUser_DuplicateUsername() throws Exception {
-        User duplicateUser = new User();
-        duplicateUser.setUsername("testuser");
-        duplicateUser.setEmail("duplicate@example.com");
-        duplicateUser.setPassword("password123");
-
         mockMvc.perform(post("/api/auth/signup")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(duplicateUser)))
+                        .content(registrationRequestJson("testuser", "duplicate@example.com", "password123", "2025-06-07")))
                 .andExpect(status().isBadRequest());
     }
 
@@ -168,7 +179,6 @@ public class AuthControllerTest {
         User savedUser = userService.createUser(user);
 
         assertNotEquals("rawPassword123", savedUser.getPassword());
-
         assertTrue(passwordEncoder.matches("rawPassword123", savedUser.getPassword()));
     }
 }
