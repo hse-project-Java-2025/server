@@ -88,6 +88,8 @@ public class ChatGPTService {
         logger.info("Generating events and tasks for query: {}", userQuery);
 
         String prompt = "Based on the user's query: \"" + userQuery + "\", generate a list of events and tasks. " +
+                "If the user mentions a note, description, or additional information related to an event, include it in the 'description' field of the corresponding event, " +
+                "unless it is clearly a separate task. " +
                 "Respond strictly in JSON format with the following structure: " +
                 "{ \"events\": [{ " +
                 "\"title\": \"string\", " +
@@ -191,6 +193,8 @@ public class ChatGPTService {
                 "\"dueDateTime\": \"ISO 8601 datetime\", " +
                 "\"allDay\": false " +
                 "}] } " +
+                "If the transcript contains a note, description, or additional information about an event, include it in the 'description' field of the event, " +
+                "unless it is clearly a separate task. " +
                 "If the transcript is not related to events or tasks, respond with: { \"error\": \"Unrelated request\" }. " +
                 "Do not include any additional text or explanation.";
 
