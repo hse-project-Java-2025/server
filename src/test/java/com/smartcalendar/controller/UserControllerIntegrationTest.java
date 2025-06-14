@@ -2,7 +2,9 @@ package com.smartcalendar.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.smartcalendar.dto.DailyTaskDto;
+import com.smartcalendar.dto.EventDto;
 import com.smartcalendar.dto.StatisticsData;
+import com.smartcalendar.dto.UserShortDto;
 import com.smartcalendar.model.Event;
 import com.smartcalendar.model.EventType;
 import com.smartcalendar.model.Task;
@@ -139,12 +141,20 @@ class UserControllerIntegrationTest {
         Event event = new Event();
         event.setId(UUID.randomUUID());
         event.setOrganizer(user);
+
+        EventDto eventDto = new EventDto();
+        eventDto.setId(event.getId());
+        eventDto.setTitle("Test Event");
+        eventDto.setOrganizer(new UserShortDto(user.getUsername(), user.getEmail()));
+
         Mockito.when(userService.findByUsername(anyString())).thenReturn(Optional.of(user));
         Mockito.when(userService.findEventsByUserId(1L)).thenReturn(List.of(event));
+        Mockito.when(userService.toEventDto(event)).thenReturn(eventDto);
 
         mockMvc.perform(get("/api/users/1/events"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].id").exists());
+                .andExpect(jsonPath("$[0].id").value(event.getId().toString()))
+                .andExpect(jsonPath("$[0].organizer.username").value("testuser"));
     }
 
     @Test

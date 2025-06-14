@@ -34,3 +34,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Firebase Service Account ###
+timetamer-smarcalendar-firebase-adminsdk-fbsvc-8be370036a.json

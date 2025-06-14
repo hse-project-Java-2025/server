@@ -144,6 +144,9 @@ public class ChatGPTService {
                 if (!event.isCompleted() && eventData.get("completed") != null) {
                     event.setCompleted(Boolean.parseBoolean(eventData.get("completed").toString()));
                 }
+                event.setShared(false);
+                event.setInvitees(new ArrayList<>());
+                event.setParticipants(new ArrayList<>());
                 entities.add(event);
             }
         }

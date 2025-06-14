@@ -37,6 +37,9 @@ public class User implements UserDetails {
     @JsonManagedReference
     private List<Task> tasks;
 
+    @Column(name = "device_token")
+    private String deviceToken;
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return Collections.emptyList();
