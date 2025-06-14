@@ -1,7 +1,9 @@
 package com.smartcalendar.service;
 
 import com.smartcalendar.dto.DailyTaskDto;
+import com.smartcalendar.dto.EventDto;
 import com.smartcalendar.dto.StatisticsData;
+import com.smartcalendar.dto.UserShortDto;
 import com.smartcalendar.model.Event;
 import com.smartcalendar.model.Task;
 import com.smartcalendar.model.User;
@@ -385,5 +387,32 @@ public class UserService {
                 notificationService.sendEmail(email, subject, text);
             }
         }
+    }
+
+    public EventDto toEventDto(Event event) {
+        EventDto dto = new EventDto();
+        dto.setId(event.getId());
+        dto.setTitle(event.getTitle());
+        dto.setDescription(event.getDescription());
+        dto.setStart(event.getStart());
+        dto.setEnd(event.getEnd());
+        dto.setLocation(event.getLocation());
+        dto.setType(event.getType());
+        dto.setCreationTime(event.getCreationTime());
+        dto.setCompleted(event.isCompleted());
+        dto.setShared(event.isShared());
+        dto.setInvitees(event.getInvitees());
+
+        if (event.getOrganizer() != null) {
+            dto.setOrganizer(new UserShortDto(event.getOrganizer().getUsername(), event.getOrganizer().getEmail()));
+        }
+        if (event.getParticipants() != null) {
+            dto.setParticipants(
+                    event.getParticipants().stream()
+                            .map(u -> new UserShortDto(u.getUsername(), u.getEmail()))
+                            .toList()
+            );
+        }
+        return dto;
     }
 }
