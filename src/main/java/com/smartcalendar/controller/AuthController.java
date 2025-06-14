@@ -26,6 +26,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -78,6 +79,15 @@ public class AuthController {
 
             logger.debug("Authentication successful for user: {}", userDetails.getUsername());
             SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            if (user.getDeviceToken() != null && !user.getDeviceToken().isBlank()) {
+                Optional<User> dbUserOpt = userService.findByUsername(userDetails.getUsername());
+                if (dbUserOpt.isPresent()) {
+                    User dbUser = dbUserOpt.get();
+                    dbUser.setDeviceToken(user.getDeviceToken());
+                    userService.createUser(dbUser);
+                }
+            }
 
             String jwt = jwtService.generateToken(userDetails.getUsername());
             logger.info("JWT token generated for user: {}", userDetails.getUsername());

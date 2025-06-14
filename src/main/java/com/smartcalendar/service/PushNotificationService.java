@@ -1,37 +1,59 @@
 package com.smartcalendar.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.auth.oauth2.GoogleCredentials;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.ResourceUtils;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.FileInputStream;
+import java.util.List;
 import java.util.Map;
 
 @Service
 public class PushNotificationService {
 
-    @Value("${fcm.server.key}")
-    private String fcmServerKey;
+    @Value("${firebase.project-id}")
+    private String projectId;
 
-    private static final String FCM_API_URL = "https://fcm.googleapis.com/fcm/send";
+    @Value("${firebase.credentials.path}")
+    private String credentialsPath;
+
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public void sendPush(String deviceToken, String title, String body) {
-        RestTemplate restTemplate = new RestTemplate();
+        try {
+            String url = "https://fcm.googleapis.com/v1/projects/" + projectId + "/messages:send";
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "key=" + fcmServerKey);
+            GoogleCredentials credentials = GoogleCredentials
+                    .fromStream(new FileInputStream(ResourceUtils.getFile(credentialsPath)))
+                    .createScoped(List.of("https://www.googleapis.com/auth/firebase.messaging"));
+            credentials.refreshIfExpired();
+            String accessToken = credentials.getAccessToken().getTokenValue();
 
-        Map<String, Object> notification = Map.of(
-                "title", title,
-                "body", body
-        );
-        Map<String, Object> message = Map.of(
-                "to", deviceToken,
-                "notification", notification
-        );
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(message, headers);
-        restTemplate.postForEntity(FCM_API_URL, request, String.class);
+            Map<String, Object> notification = Map.of(
+                    "title", title,
+                    "body", body
+            );
+            Map<String, Object> message = Map.of(
+                    "token", deviceToken,
+                    "notification", notification
+            );
+            Map<String, Object> bodyMap = Map.of("message", message);
+
+            String jsonBody = objectMapper.writeValueAsString(bodyMap);
+
+            HttpEntity<String> request = new HttpEntity<>(jsonBody, headers);
+            RestTemplate restTemplate = new RestTemplate();
+            restTemplate.postForEntity(url, request, String.class);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }

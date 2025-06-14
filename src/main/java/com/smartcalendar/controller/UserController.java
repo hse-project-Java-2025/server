@@ -13,10 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/users")
@@ -129,6 +126,10 @@ public class UserController {
             return ResponseEntity.status(403).build();
         }
         event.setOrganizer(currentUser);
+        event.setShared(false);
+        event.setInvitees(new ArrayList<>());
+        event.setParticipants(List.of(currentUser));
+
         try {
             Event createdEvent = userService.createEventWithCustomId(event);
             return ResponseEntity.ok(Map.of("id", createdEvent.getId()));
@@ -148,7 +149,11 @@ public class UserController {
         if (!existingEvent.getOrganizer().getId().equals(currentUser.getId())) {
             return ResponseEntity.status(403).build();
         }
+
         userService.editEvent(eventId, event);
+
+        userService.notifyEventUpdated(existingEvent, event);
+
         return ResponseEntity.ok().build();
     }
 
@@ -235,6 +240,9 @@ public class UserController {
         }
         boolean completed = requestBody.get("completed");
         Event updatedEvent = userService.updateEventStatus(eventId, completed);
+
+        userService.notifyEventUpdated(event, updatedEvent);
+
         return ResponseEntity.ok(updatedEvent);
     }
 
@@ -242,12 +250,16 @@ public class UserController {
     public ResponseEntity<Map<String, UUID>> deleteEventById(
             @PathVariable UUID eventId,
             @AuthenticationPrincipal UserDetails userDetails) {
-        Event event = userService.getEventById(eventId);
         User currentUser = userService.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        Event event = userService.getEventById(eventId);
+
         if (!event.getOrganizer().getId().equals(currentUser.getId())) {
-            return ResponseEntity.status(403).build();
+            return ResponseEntity.status(403).body(Map.of());
         }
+
+        userService.notifyEventDeleted(event);
+
         UUID deletedId = userService.deleteEventById(eventId);
         return ResponseEntity.ok(Map.of("id", deletedId));
     }
@@ -279,81 +291,118 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/events/collaborative")
-    public ResponseEntity<?> addCollaborativeEvent(
-            @RequestBody AddCollaborativeEventRequest request,
+    @PostMapping("/events/{eventId}/invite")
+    public ResponseEntity<?> inviteUserToEvent(
+            @PathVariable UUID eventId,
+            @RequestBody Map<String, String> requestBody,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String loginOrEmail = requestBody.get("loginOrEmail");
+        Event event = userService.getEventById(eventId);
+
+        Optional<User> userOpt = userService.findByLoginOrEmail(loginOrEmail);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+        }
+        User user = userOpt.get();
+
+        if (event.getParticipants() != null && event.getParticipants().contains(user)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User is already a participant"));
+        }
+        if (event.getInvitees() != null && event.getInvitees().contains(user.getEmail())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User is already invited"));
+        }
+        if (event.getInvitees() == null) {
+            event.setInvitees(new ArrayList<>());
+        }
+        event.getInvitees().add(user.getEmail());
+        event.setShared(true);
+
+        userService.saveEvent(event);
+
+        return ResponseEntity.ok(Map.of("invited", user.getUsername()));
+    }
+
+    @PostMapping("/events/{eventId}/remove-invite")
+    public ResponseEntity<?> removeInviteFromEvent(
+            @PathVariable UUID eventId,
+            @RequestBody Map<String, String> requestBody,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        String loginOrEmail = requestBody.get("loginOrEmail");
+        Event event = userService.getEventById(eventId);
+
+        Optional<User> userOpt = userService.findByLoginOrEmail(loginOrEmail);
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+        }
+        User user = userOpt.get();
+
+        if (event.getInvitees() != null) {
+            event.getInvitees().remove(user.getEmail());
+            userService.saveEvent(event);
+        }
+
+        return ResponseEntity.ok(Map.of("removedInvite", user.getUsername()));
+    }
+
+    @GetMapping("/me/invites")
+    public ResponseEntity<List<Event>> getMyInvites(@AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        List<Event> invites = userService.findEventsByInvitee(currentUser.getEmail());
+        return ResponseEntity.ok(invites);
+    }
+
+    @PostMapping("/events/{eventId}/accept-invite")
+    public ResponseEntity<?> acceptInvite(
+            @PathVariable UUID eventId,
             @AuthenticationPrincipal UserDetails userDetails) {
         User currentUser = userService.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        Event event = userService.getEventById(eventId);
 
-        Optional<User> participantOpt = userService.findByUsername(request.getLoginOrEmail());
-        if (participantOpt.isEmpty()) {
-            participantOpt = userService.findByEmail(request.getLoginOrEmail());
+        if (event.getInvitees() == null || !event.getInvitees().contains(currentUser.getEmail())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "No invite found for this user"));
         }
-        if (participantOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
+
+        event.getInvitees().remove(currentUser.getEmail());
+        if (!event.getParticipants().contains(currentUser)) {
+            event.getParticipants().add(currentUser);
         }
-        User participant = participantOpt.get();
+        userService.saveEvent(event);
 
-        Event event = request.getEvent();
-        event.setOrganizer(currentUser);
-        event.setId(UUID.randomUUID());
-        event.setParticipants(List.of(currentUser, participant));
-        Event savedEvent = userService.createEventWithCustomId(event);
-
-        userService.notifyUserAddedToEvent(participant, event, request.getDeviceToken());
-
-        return ResponseEntity.ok(savedEvent);
+        return ResponseEntity.ok(Map.of("accepted", true));
     }
 
     @PostMapping("/events/{eventId}/remove-participant")
-    public ResponseEntity<?> removeParticipant(
+    public ResponseEntity<?> removeParticipantFromEvent(
             @PathVariable UUID eventId,
             @RequestBody Map<String, String> requestBody,
             @AuthenticationPrincipal UserDetails userDetails) {
-        Event event = userService.getEventById(eventId);
-        String loginOrEmail = requestBody.get("loginOrEmail");
-        String deviceToken = requestBody.get("deviceToken");
-
-        Optional<User> userOpt = userService.findByUsername(loginOrEmail);
-        if (userOpt.isEmpty()) {
-            userOpt = userService.findByEmail(loginOrEmail);
-        }
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
-        }
-        User user = userOpt.get();
-        event.getParticipants().remove(user);
-        userService.notifyUserRemovedFromEvent(user, event, deviceToken);
-        userService.createEventWithCustomId(event);
-        return ResponseEntity.ok(Map.of("removed", user.getUsername()));
-    }
-
-    @PostMapping("/events/{eventId}/add-participant")
-    public ResponseEntity<?> addParticipantToEvent(
-            @PathVariable UUID eventId,
-            @RequestBody Map<String, String> requestBody,
-            @AuthenticationPrincipal UserDetails userDetails) {
+        User currentUser = userService.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
         Event event = userService.getEventById(eventId);
 
-        String loginOrEmail = requestBody.get("loginOrEmail");
-        String deviceToken = requestBody.get("deviceToken");
-
-        Optional<User> userOpt = userService.findByUsername(loginOrEmail);
-        if (userOpt.isEmpty()) {
-            userOpt = userService.findByEmail(loginOrEmail);
+        if (!event.getOrganizer().getId().equals(currentUser.getId())) {
+            return ResponseEntity.status(403).body(Map.of("error", "Only organizer can remove participants"));
         }
+
+        String loginOrEmail = requestBody.get("loginOrEmail");
+        Optional<User> userOpt = userService.findByLoginOrEmail(loginOrEmail);
         if (userOpt.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "User not found"));
         }
         User user = userOpt.get();
 
-        if (!event.getParticipants().contains(user)) {
-            event.getParticipants().add(user);
-            userService.createEventWithCustomId(event);
-            userService.notifyUserAddedToEvent(user, event, deviceToken);
+        if (user.getId().equals(currentUser.getId())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Organizer cannot be removed"));
         }
 
-        return ResponseEntity.ok(Map.of("added", user.getUsername()));
+        boolean removed = event.getParticipants() != null && event.getParticipants().remove(user);
+        if (removed) {
+            userService.saveEvent(event);
+            return ResponseEntity.ok(Map.of("removedParticipant", user.getUsername()));
+        } else {
+            return ResponseEntity.badRequest().body(Map.of("error", "User is not a participant"));
+        }
     }
 }

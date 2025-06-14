@@ -43,6 +43,13 @@ public class Event {
 
     private boolean completed = false;
 
+    private boolean isShared = false;
+
+    @ElementCollection
+    @CollectionTable(name = "event_invitees", joinColumns = @JoinColumn(name = "event_id"))
+    @Column(name = "invitee")
+    private List<String> invitees = new ArrayList<>();
+
     @ManyToMany
     @JoinTable(
             name = "event_participants",
