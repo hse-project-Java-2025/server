@@ -2,6 +2,7 @@ package com.smartcalendar.controller;
 
 import com.smartcalendar.dto.AddCollaborativeEventRequest;
 import com.smartcalendar.dto.DailyTaskDto;
+import com.smartcalendar.dto.EventDto;
 import com.smartcalendar.dto.StatisticsData;
 import com.smartcalendar.model.Event;
 import com.smartcalendar.model.Task;
@@ -103,7 +104,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/events")
-    public ResponseEntity<List<Event>> getEventsByUserId(
+    public ResponseEntity<List<EventDto>> getEventsByUserId(
             @PathVariable Long userId,
             @AuthenticationPrincipal UserDetails userDetails) {
         User currentUser = userService.findByUsername(userDetails.getUsername())
@@ -112,7 +113,10 @@ public class UserController {
             return ResponseEntity.status(403).build();
         }
         List<Event> events = userService.findEventsByUserId(userId);
-        return ResponseEntity.ok(events);
+        List<EventDto> eventDtos = events.stream()
+                .map(userService::toEventDto)
+                .toList();
+        return ResponseEntity.ok(eventDtos);
     }
 
     @PostMapping("/{userId}/events")
@@ -228,7 +232,7 @@ public class UserController {
     }
 
     @PatchMapping("/events/{eventId}/status")
-    public ResponseEntity<Event> updateEventStatus(
+    public ResponseEntity<EventDto> updateEventStatus(
             @PathVariable UUID eventId,
             @RequestBody Map<String, Boolean> requestBody,
             @AuthenticationPrincipal UserDetails userDetails) {
@@ -243,7 +247,8 @@ public class UserController {
 
         userService.notifyEventUpdated(event, updatedEvent);
 
-        return ResponseEntity.ok(updatedEvent);
+        EventDto updatedEventDto = userService.toEventDto(updatedEvent);
+        return ResponseEntity.ok(updatedEventDto);
     }
 
     @DeleteMapping("/events/{eventId}")
@@ -345,12 +350,16 @@ public class UserController {
     }
 
     @GetMapping("/me/invites")
-    public ResponseEntity<List<Event>> getMyInvites(@AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<List<EventDto>> getMyInvites(@AuthenticationPrincipal UserDetails userDetails) {
         User currentUser = userService.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
         List<Event> invites = userService.findEventsByInvitee(currentUser.getEmail());
-        return ResponseEntity.ok(invites);
+        List<EventDto> inviteDtos = invites.stream()
+                .map(userService::toEventDto)
+                .toList();
+        return ResponseEntity.ok(inviteDtos);
     }
+
 
     @PostMapping("/events/{eventId}/accept-invite")
     public ResponseEntity<?> acceptInvite(
