@@ -25,8 +25,8 @@ public class Task {
 
     private boolean completed;
 
-    private LocalDateTime dueDateTime; // дедлайн с точностью до времени
-    private Boolean allDay = false;    // если true — задача только на день (игнорировать время)
+    private LocalDateTime dueDateTime;
+    private Boolean allDay = false;
 
     private LocalDateTime creationTime = LocalDateTime.now();
 

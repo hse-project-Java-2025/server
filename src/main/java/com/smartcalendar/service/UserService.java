@@ -1,7 +1,9 @@
 package com.smartcalendar.service;
 
 import com.smartcalendar.dto.DailyTaskDto;
+import com.smartcalendar.dto.EventDto;
 import com.smartcalendar.dto.StatisticsData;
+import com.smartcalendar.dto.UserShortDto;
 import com.smartcalendar.model.Event;
 import com.smartcalendar.model.Task;
 import com.smartcalendar.model.User;
@@ -9,6 +11,7 @@ import com.smartcalendar.repository.EventRepository;
 import com.smartcalendar.repository.StatisticsRepository;
 import com.smartcalendar.repository.TaskRepository;
 import com.smartcalendar.repository.UserRepository;
+import jakarta.validation.constraints.Email;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -17,11 +20,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +33,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final StatisticsService statisticsService;
     private final StatisticsRepository statisticsRepository;
+    private final NotificationService notificationService;
 
     public User createUser(User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
@@ -158,7 +160,13 @@ public class UserService {
     }
 
     public List<Event> findEventsByUserId(Long userId) {
-        return eventRepository.findByOrganizerId(userId);
+        List<Event> asOrganizer = eventRepository.findByOrganizerId(userId);
+        List<Event> asParticipant = eventRepository.findAll().stream()
+                .filter(e -> e.getParticipants() != null && e.getParticipants().stream().anyMatch(u -> u.getId().equals(userId)))
+                .collect(Collectors.toList());
+        Set<Event> all = new HashSet<>(asOrganizer);
+        all.addAll(asParticipant);
+        return new ArrayList<>(all);
     }
 
     public Event createEvent(Event event) {
@@ -275,5 +283,182 @@ public class UserService {
 
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email);
+    }
+
+    public void notifyUserAddedToEvent(User user, Event event, String deviceToken) {
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            String subject = "[TimeTamer SmartCalendar] You have been added to event: " + event.getTitle();
+            String text = buildEventNotificationText(
+                    "You have been added to the event:",
+                    event,
+                    event.getOrganizer()
+            );
+            notificationService.sendEmail(user.getEmail(), subject, text);
+        }
+        if (deviceToken != null && !deviceToken.isBlank()) {
+            notificationService.sendPush(
+                    deviceToken,
+                    "Added to event",
+                    "You have been added to event: " + event.getTitle()
+            );
+        }
+    }
+
+    public void notifyUserRemovedFromEvent(User user, Event event, String deviceToken) {
+        if (user.getEmail() != null && !user.getEmail().isBlank()) {
+            String subject = "[TimeTamer SmartCalendar] You have been removed from event: " + event.getTitle();
+            String text = buildEventNotificationText(
+                    "You have been removed from the event:",
+                    event,
+                    event.getOrganizer()
+            );
+            notificationService.sendEmail(user.getEmail(), subject, text);
+        }
+        if (deviceToken != null && !deviceToken.isBlank()) {
+            notificationService.sendPush(deviceToken,
+                    "Removed from event",
+                    "You have been removed from event: " + event.getTitle());
+        }
+    }
+
+    private String buildEventNotificationText(String action, Event event, User organizer) {
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        String organizerName = organizer != null
+                ? organizer.getUsername() + " (" + organizer.getEmail() + ")"
+                : "a user";
+        String eventType = event.getType() != null ? event.getType().name() : "COMMON";
+        String start = event.getStart() != null ? event.getStart().format(dtf) : "unspecified";
+        String end = event.getEnd() != null ? event.getEnd().format(dtf) : "unspecified";
+        String location = event.getLocation() != null ? event.getLocation() : "unspecified";
+
+        return String.format(
+                "Hello!\n\n" +
+                        "%s\n\n" +
+                        "Title: %s\n" +
+                        "Type: %s\n" +
+                        "Start: %s\n" +
+                        "End: %s\n" +
+                        "Location: %s\n\n" +
+                        "Description: %s\n\n" +
+                        "Organizer: %s\n\n" +
+                        "This is an automatic notification from TimeTamer SmartCalendar.\n",
+                action,
+                event.getTitle(),
+                eventType,
+                start,
+                end,
+                location,
+                event.getDescription() != null ? event.getDescription() : "No description",
+                organizerName
+        );
+    }
+
+    public List<Event> findEventsByInvitee(String email) {
+        return eventRepository.findAll().stream()
+                .filter(event -> event.getInvitees() != null && event.getInvitees().contains(email))
+                .collect(Collectors.toList());
+    }
+
+
+    public void notifyInvitees(Event event) {
+        if (event.getInvitees() == null || event.getInvitees().isEmpty()) return;
+
+        String subject = "[TimeTamer SmartCalendar] Event invitation: " + event.getTitle();
+        String text = buildEventNotificationText(
+                "You have been invited to the event:",
+                event,
+                event.getOrganizer()
+        );
+
+        for (String email : event.getInvitees()) {
+            Optional<User> userOpt = findByEmail(email);
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                notificationService.sendEmail(user.getEmail(), subject, text);
+                if (user.getDeviceToken() != null && !user.getDeviceToken().isBlank()) {
+                    notificationService.sendPush(user.getDeviceToken(), "Invitation", text);
+                }
+            } else {
+                notificationService.sendEmail(email, subject, text);
+            }
+        }
+    }
+
+    public Optional<User> findByLoginOrEmail(String loginOrEmail) {
+        Optional<com.smartcalendar.model.User> userOpt = userRepository.findByUsername(loginOrEmail);
+        if (userOpt.isEmpty()) {
+            userOpt = userRepository.findByEmail(loginOrEmail);
+        }
+        return userOpt;
+    }
+
+    @Transactional
+    public Event saveEvent(Event event) {
+        return eventRepository.save(event);
+    }
+
+    public void notifyEventDeleted(Event event) {
+        String subject = "[TimeTamer SmartCalendar] Event \"" + event.getTitle() + "\" has been deleted";
+        String text = buildEventNotificationText(
+                "The event has been deleted:",
+                event,
+                event.getOrganizer()
+        );
+        notifyAllEventUsers(event, subject, text);
+    }
+
+    public void notifyEventUpdated(Event oldEvent, Event newEvent) {
+        String subject = "[TimeTamer SmartCalendar] Event \"" + oldEvent.getTitle() + "\" has been updated";
+        String text = buildEventNotificationText(
+                "The event has been updated:",
+                newEvent,
+                oldEvent.getOrganizer()
+        );
+        notifyAllEventUsers(oldEvent, subject, text);
+    }
+
+    private void notifyAllEventUsers(Event event, String subject, String text) {
+        if (event.getParticipants() != null) {
+            for (User user : event.getParticipants()) {
+                if (!user.getId().equals(event.getOrganizer().getId())) {
+                    notificationService.sendEmail(user.getEmail(), subject, text);
+                    if (user.getDeviceToken() != null && !user.getDeviceToken().isBlank()) {
+                        notificationService.sendPush(user.getDeviceToken(), subject, text);
+                    }
+                }
+            }
+        }
+        if (event.getInvitees() != null) {
+            for (String email : event.getInvitees()) {
+                notificationService.sendEmail(email, subject, text);
+            }
+        }
+    }
+
+    public EventDto toEventDto(Event event) {
+        EventDto dto = new EventDto();
+        dto.setId(event.getId());
+        dto.setTitle(event.getTitle());
+        dto.setDescription(event.getDescription());
+        dto.setStart(event.getStart());
+        dto.setEnd(event.getEnd());
+        dto.setLocation(event.getLocation());
+        dto.setType(event.getType());
+        dto.setCreationTime(event.getCreationTime());
+        dto.setCompleted(event.isCompleted());
+        dto.setShared(event.isShared());
+        dto.setInvitees(event.getInvitees());
+
+        if (event.getOrganizer() != null) {
+            dto.setOrganizer(new UserShortDto(event.getOrganizer().getUsername(), event.getOrganizer().getEmail()));
+        }
+        if (event.getParticipants() != null) {
+            dto.setParticipants(
+                    event.getParticipants().stream()
+                            .map(u -> new UserShortDto(u.getUsername(), u.getEmail()))
+                            .toList()
+            );
+        }
+        return dto;
     }
 }
