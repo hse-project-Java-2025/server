@@ -5,6 +5,7 @@ import com.smartcalendar.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -25,6 +26,7 @@ import java.util.List;
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
+@Profile("!test")
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final UserService userService;
@@ -66,7 +68,10 @@ public class SecurityConfig {
                                 "/api/auth/change-credentials",
                                 "/api/statistics/**",
                                 "/api/users/**",
-                                "/api/test/**"
+                                "/api/test/**",
+                                "/api/chatgpt/**",
+                                "/api/audio/**",
+                                "/api/yandexgpt/**"
                         ).authenticated()
                 )
                 .sessionManagement(session -> session
@@ -81,7 +86,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("*")); //TODO: конкретные домены
+        configuration.setAllowedOrigins(List.of("*"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setExposedHeaders(List.of("Authorization"));

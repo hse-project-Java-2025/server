@@ -7,6 +7,10 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Entity
 @Data
 @Table(name = "tasks")
@@ -14,8 +18,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Task {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private UUID id;
 
     @Column
     private String title;
@@ -23,6 +27,11 @@ public class Task {
     private String description;
     @Column
     private boolean isCompleted;
+
+    private LocalDateTime dueDateTime;
+    private Boolean allDay = false;
+
+    private LocalDateTime creationTime = LocalDateTime.now();
 
     @ManyToOne
     @JoinColumn(name = "user_id")

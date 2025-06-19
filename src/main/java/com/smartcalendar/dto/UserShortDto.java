@@ -5,6 +5,7 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class AverageDayTimeVars {
-    private long averageMinutesPerDay;
+public class UserShortDto {
+    private String username;
+    private String email;
 }

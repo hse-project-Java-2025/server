@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.UUID;
 
 @Entity
 @Table(name = "events")
@@ -19,11 +21,13 @@ import java.util.List;
 @AllArgsConstructor
 public class Event {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    //@GeneratedValue(strategy = GenerationType.AUTO)
+    private UUID id;
 
     @Column
     private String title;
+
+    private String description;
 
     @Column(name = "start_time")
     private LocalDateTime start;
@@ -33,6 +37,11 @@ public class Event {
 
     @Column
     private String location;
+
+    @Enumerated(EnumType.STRING)
+    private EventType type;
+
+    private LocalDateTime creationTime = LocalDateTime.now();
 
     @ManyToOne
     @JoinColumn(name = "organizer_id")
@@ -49,8 +58,21 @@ public class Event {
     @JsonProperty("tags")
     private List<Tag> tags;
 
-    @ManyToMany(mappedBy = "events", fetch = FetchType.LAZY)
-    //@JsonBackReference(value = "personal_events")
+    private boolean completed = false;
+
+    private boolean isShared = false;
+
+    @ElementCollection
+    @CollectionTable(name = "event_invitees", joinColumns = @JoinColumn(name = "event_id"))
+    @Column(name = "invitee")
+    private List<String> invitees = new ArrayList<>();
+
+    @ManyToMany
+    @JoinTable(
+            name = "event_participants",
+            joinColumns = @JoinColumn(name = "event_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
     @JsonIgnore
-    private List<User> users;
+    private List<User> participants = new ArrayList<>();
 }

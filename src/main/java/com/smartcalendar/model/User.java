@@ -38,6 +38,9 @@ public class User implements UserDetails {
     @JsonManagedReference(value = "user_tasks")
     private List<Task> tasks;
 
+    @Column(name = "device_token")
+    private String deviceToken;
+
     @OneToMany(mappedBy = "organizer", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference(value = "organized_events")
     private List<Event> organized_events;
