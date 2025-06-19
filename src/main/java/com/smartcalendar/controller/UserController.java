@@ -323,7 +323,7 @@ public class UserController {
         event.setShared(true);
 
         userService.saveEvent(event);
-
+        userService.notifyInvitees(event);
         return ResponseEntity.ok(Map.of("invited", user.getUsername()));
     }
 
@@ -378,6 +378,7 @@ public class UserController {
             event.getParticipants().add(currentUser);
         }
         userService.saveEvent(event);
+        userService.notifyUserAddedToEvent(currentUser, event, currentUser.getDeviceToken());
 
         return ResponseEntity.ok(Map.of("accepted", true));
     }
@@ -409,6 +410,7 @@ public class UserController {
         boolean removed = event.getParticipants() != null && event.getParticipants().remove(user);
         if (removed) {
             userService.saveEvent(event);
+            userService.notifyUserRemovedFromEvent(user, event, user.getDeviceToken());
             return ResponseEntity.ok(Map.of("removedParticipant", user.getUsername()));
         } else {
             return ResponseEntity.badRequest().body(Map.of("error", "User is not a participant"));

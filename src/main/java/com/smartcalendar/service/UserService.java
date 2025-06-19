@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.time.format.DateTimeFormatter;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +34,6 @@ public class UserService {
     private final StatisticsService statisticsService;
     private final StatisticsRepository statisticsRepository;
     private final NotificationService notificationService;
-    private final PushNotificationService pushNotificationService;
 
     public User createUser(User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
@@ -287,9 +287,12 @@ public class UserService {
 
     public void notifyUserAddedToEvent(User user, Event event, String deviceToken) {
         if (user.getEmail() != null && !user.getEmail().isBlank()) {
-            String subject = "You have been added to event: " + event.getTitle();
-            String text = "Hello, you have been added to the event \"" + event.getTitle() + "\" by " +
-                    (event.getOrganizer() != null ? event.getOrganizer().getUsername() : "system") + ".";
+            String subject = "[TimeTamer SmartCalendar] You have been added to event: " + event.getTitle();
+            String text = buildEventNotificationText(
+                    "You have been added to the event:",
+                    event,
+                    event.getOrganizer()
+            );
             notificationService.sendEmail(user.getEmail(), subject, text);
         }
         if (deviceToken != null && !deviceToken.isBlank()) {
@@ -302,19 +305,52 @@ public class UserService {
     }
 
     public void notifyUserRemovedFromEvent(User user, Event event, String deviceToken) {
-        sendEventEmail(user, event, "You have been removed from event: ", "removed from the event");
-        notificationService.sendPush(deviceToken,
-                "Removed from event",
-                "You have been removed from event: " + event.getTitle());
-    }
-
-    private void sendEventEmail(User user, Event event, String subjectPrefix, String actionText) {
         if (user.getEmail() != null && !user.getEmail().isBlank()) {
-            String subject = subjectPrefix + event.getTitle();
-            String text = "Hello, you have been " + actionText + " \"" + event.getTitle() + "\""
-                    + (event.getOrganizer() != null ? " by " + event.getOrganizer().getUsername() : "") + ".";
+            String subject = "[TimeTamer SmartCalendar] You have been removed from event: " + event.getTitle();
+            String text = buildEventNotificationText(
+                    "You have been removed from the event:",
+                    event,
+                    event.getOrganizer()
+            );
             notificationService.sendEmail(user.getEmail(), subject, text);
         }
+        if (deviceToken != null && !deviceToken.isBlank()) {
+            notificationService.sendPush(deviceToken,
+                    "Removed from event",
+                    "You have been removed from event: " + event.getTitle());
+        }
+    }
+
+    private String buildEventNotificationText(String action, Event event, User organizer) {
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+        String organizerName = organizer != null
+                ? organizer.getUsername() + " (" + organizer.getEmail() + ")"
+                : "a user";
+        String eventType = event.getType() != null ? event.getType().name() : "COMMON";
+        String start = event.getStart() != null ? event.getStart().format(dtf) : "unspecified";
+        String end = event.getEnd() != null ? event.getEnd().format(dtf) : "unspecified";
+        String location = event.getLocation() != null ? event.getLocation() : "unspecified";
+
+        return String.format(
+                "Hello!\n\n" +
+                        "%s\n\n" +
+                        "Title: %s\n" +
+                        "Type: %s\n" +
+                        "Start: %s\n" +
+                        "End: %s\n" +
+                        "Location: %s\n\n" +
+                        "Description: %s\n\n" +
+                        "Organizer: %s\n\n" +
+                        "This is an automatic notification from TimeTamer SmartCalendar.\n",
+                action,
+                event.getTitle(),
+                eventType,
+                start,
+                end,
+                location,
+                event.getDescription() != null ? event.getDescription() : "No description",
+                organizerName
+        );
     }
 
     public List<Event> findEventsByInvitee(String email) {
@@ -327,10 +363,12 @@ public class UserService {
     public void notifyInvitees(Event event) {
         if (event.getInvitees() == null || event.getInvitees().isEmpty()) return;
 
-        String subject = "You have been invited to the event: " + event.getTitle();
-        String text = "You have been invited by " +
-                (event.getOrganizer() != null ? event.getOrganizer().getUsername() : "a user") +
-                " to the event \"" + event.getTitle() + "\".";
+        String subject = "[TimeTamer SmartCalendar] Event invitation: " + event.getTitle();
+        String text = buildEventNotificationText(
+                "You have been invited to the event:",
+                event,
+                event.getOrganizer()
+        );
 
         for (String email : event.getInvitees()) {
             Optional<User> userOpt = findByEmail(email);
@@ -360,14 +398,22 @@ public class UserService {
     }
 
     public void notifyEventDeleted(Event event) {
-        String subject = "Event \"" + event.getTitle() + "\" has been deleted";
-        String text = "The organizer " + event.getOrganizer().getUsername() + " has deleted the event.";
+        String subject = "[TimeTamer SmartCalendar] Event \"" + event.getTitle() + "\" has been deleted";
+        String text = buildEventNotificationText(
+                "The event has been deleted:",
+                event,
+                event.getOrganizer()
+        );
         notifyAllEventUsers(event, subject, text);
     }
 
     public void notifyEventUpdated(Event oldEvent, Event newEvent) {
-        String subject = "Event \"" + oldEvent.getTitle() + "\" has been updated";
-        String text = "The organizer " + oldEvent.getOrganizer().getUsername() + " has updated the event details.";
+        String subject = "[TimeTamer SmartCalendar] Event \"" + oldEvent.getTitle() + "\" has been updated";
+        String text = buildEventNotificationText(
+                "The event has been updated:",
+                newEvent,
+                oldEvent.getOrganizer()
+        );
         notifyAllEventUsers(oldEvent, subject, text);
     }
 
