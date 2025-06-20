@@ -6,6 +6,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.UUID;
+
 @Entity
 @Data
 @Table(name = "friendships")
@@ -13,8 +15,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Friendship {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    //@GeneratedValue(strategy = GenerationType.IDENTITY)
+    private UUID id;
 
     @ManyToOne
     @JoinColumn(name = "user_id1")

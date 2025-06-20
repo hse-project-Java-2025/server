@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Data
@@ -17,8 +18,8 @@ import java.util.List;
 @AllArgsConstructor
 public class GroupChat {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    //@GeneratedValue(strategy = GenerationType.IDENTITY)
+    private UUID id;
 
     @ManyToOne
     @JoinColumn(name = "admin_id")
