@@ -16,7 +16,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-@ActiveProfiles("test")
+@ActiveProfiles("h2")
 class StatisticsServiceTest {
 
     @Mock

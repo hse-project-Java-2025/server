@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "chatgpt.api.key=dummy-key",
         "spring.security.enabled=false"
 })
-@ActiveProfiles("test")
+@ActiveProfiles("h2")
 @AutoConfigureMockMvc
 class ChatGPTControllerIntegrationTest {
 
