@@ -18,7 +18,7 @@ import java.util.UUID;
 public class Tag {
     @Id
     //@GeneratedValue(strategy = GenerationType.IDENTITY)
-    private UUID id;
+    private Long id;
 
     @Column
     private String title;
@@ -27,4 +27,8 @@ public class Tag {
     //@JsonBackReference(value = "event_tags")
     @JsonIgnore
     private List<Event> events;
+
+    public Long getId() {
+        return id;
+    }
 }

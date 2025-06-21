@@ -10,9 +10,8 @@ import lombok.AllArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Entity
 @Data
@@ -81,7 +80,7 @@ public class User implements UserDetails {
     )
     //@JsonManagedReference(value = "personal_events")
     @JsonProperty("events")
-    private List<Event> events;
+    private List<Event> events = new ArrayList<>();
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -127,4 +126,13 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
+    public Long getId() {
+        return id;
+    }
+
+    public List<Event> getVisitedEvents() {
+        return events.stream().filter(event -> event.getStart().isBefore(LocalDateTime.now())).toList();
+    }
+
 }

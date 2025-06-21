@@ -7,11 +7,15 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS events (
-    id BIGSERIAL PRIMARY KEY,
+    id UUID PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
+    description VARCHAR(255),
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
-    location VARCHAR(255) NOT NULL,
+    event_location VARCHAR(255) NOT NULL,
+    completed BOOLEAN NOT NULL,
+    is_shared BOOLEAN NOT NULL,
+    organizer_id BIGSERIAL NOT NULL,
     FOREIGN KEY (organizer_id) REFERENCES users (id)
 );
 
