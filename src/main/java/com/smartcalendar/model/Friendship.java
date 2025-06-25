@@ -16,7 +16,7 @@ import java.util.UUID;
 public class Friendship {
     @Id
     //@GeneratedValue(strategy = GenerationType.IDENTITY)
-    private UUID id;
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "user_id1")
@@ -27,4 +27,12 @@ public class Friendship {
     @JoinColumn(name = "user_id2")
     @JsonBackReference(value = "friends2")
     private User user2;
+
+    public void setUser1(User user1) {
+        this.user1 = user1;
+    }
+
+    public void setUser2(User user2) {
+        this.user2 = user2;
+    }
 }
