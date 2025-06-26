@@ -15,14 +15,18 @@ public class NotificationService {
     private String fromAddress;
 
     public void sendEmail(String to, String subject, String text) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(text);
-        if (fromAddress != null && !fromAddress.isBlank()) {
-            message.setFrom(fromAddress);
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(text);
+            if (fromAddress != null && !fromAddress.isBlank()) {
+                message.setFrom(fromAddress);
+            }
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("Failed to send email to " + to + ": " + e.getMessage());
         }
-        mailSender.send(message);
     }
 
     public void sendPush(String deviceToken, String title, String body) {
