@@ -62,6 +62,7 @@ public class SecurityConfig {
                                 "/static/**",
                                 "/api/auth/login",
                                 "/api/auth/signup",
+                                "/api/events",
                                 "/h2-console/**"
                         ).permitAll()
                         .requestMatchers(
