@@ -16,7 +16,7 @@ import java.util.Collections;
 
 @TestConfiguration
 public class TestSecurityConfig {
-    @Bean
+    @Bean(name = "securityFilterChain")
     @Primary
     public SecurityFilterChain testSecurityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())

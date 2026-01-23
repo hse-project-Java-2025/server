@@ -26,7 +26,7 @@ public class ChatGPTController {
     @PostMapping("/generate")
     public ResponseEntity<Map<String, List<?>>> generateEventsAndTasks(@RequestBody Map<String, String> requestBody) {
         String userQuery = requestBody.get("query");
-        Map<String, List<?>> result = chatGPTService.generateEventsAndTasks(userQuery);
+        Map<String, List<?>> result = chatGPTService.generateEvents(userQuery);
         return ResponseEntity.ok(result);
     }
 

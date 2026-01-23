@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.smartcalendar.model.Event;
 import com.smartcalendar.model.EventType;
-import com.smartcalendar.model.Task;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -84,10 +83,10 @@ public class ChatGPTService {
         }
     }
 
-    public Map<String, List<?>> generateEventsAndTasks(String userQuery) {
-        logger.info("Generating events and tasks for query: {}", userQuery);
+    public Map<String, List<?>> generateEvents(String userQuery) {
+        logger.info("Generating events for query: {}", userQuery);
 
-        String prompt = "Based on the user's query: \"" + userQuery + "\", generate a list of events and tasks. " +
+        String prompt = "Based on the user's query: \"" + userQuery + "\", generate a list of events . " +
                 "If the user mentions a note, description, or additional information related to an event, include it in the 'description' field of the corresponding event, " +
                 "unless it is clearly a separate task. " +
                 "Respond strictly in JSON format with the following structure: " +
@@ -99,21 +98,16 @@ public class ChatGPTService {
                 "\"location\": \"string\", " +
                 "\"type\": \"COMMON|FITNESS|STUDIES|WORK\" " +
                 "}], " +
-                "\"tasks\": [{ " +
-                "\"title\": \"string\", " +
-                "\"description\": \"string\", " +
-                "\"completed\": false, " +
-                "\"dueDateTime\": \"ISO 8601 datetime\", " +
-                "\"allDay\": false " +
-                "}] } " +
-                "Do not include any additional text or explanation.";
+                "Do not include any additional text or explanation. The \"type\" field MUST be exactly one of: \"COMMON\", \"FITNESS\", \"STUDIES\", \"WORK\". \n" +
+                "If the event is about sports or training, always use \"FITNESS\". \n" +
+                "Do not invent other values (e.g., \"SPORT\").";
 
         String response = askChatGPT(prompt, "gpt-3.5-turbo");
 
         try {
             return objectMapper.readValue(response, new TypeReference<>() {});
         } catch (Exception e) {
-            logger.error("Error parsing ChatGPT response into events and tasks", e);
+            logger.error("Error parsing ChatGPT response into events", e);
             throw new RuntimeException("Failed to parse ChatGPT response: " + e.getMessage());
         }
     }
@@ -124,11 +118,17 @@ public class ChatGPTService {
         List<Object> entities = new ArrayList<>();
 
         List<Map<String, Object>> events = (List<Map<String, Object>>) data.get("events");
-        List<Map<String, Object>> tasks = (List<Map<String, Object>>) data.get("tasks");
 
         if (events != null) {
             for (Map<String, Object> eventData : events) {
                 Event event = objectMapper.convertValue(eventData, Event.class);
+                event.setType(EventType.COMMON);
+
+                if (eventData.get("type")!=null && Arrays.stream(EventType.values()).anyMatch(x->Objects.equals(x.toString(),eventData.get("type").toString()))) {
+                    try {
+                        event.setType(EventType.valueOf(eventData.get("type").toString()));
+                    } catch (Exception ignored) {}
+                }
 
                 if (event.getId() == null) {
                     event.setId(UUID.randomUUID());
@@ -136,14 +136,10 @@ public class ChatGPTService {
                 if (event.getCreationTime() == null) {
                     event.setCreationTime(LocalDateTime.now());
                 }
-                if (event.getType() == null && eventData.get("type") != null) {
-                    try {
-                        event.setType(EventType.valueOf(eventData.get("type").toString()));
-                    } catch (Exception ignored) {}
-                }
                 if (!event.isCompleted() && eventData.get("completed") != null) {
                     event.setCompleted(Boolean.parseBoolean(eventData.get("completed").toString()));
                 }
+
                 event.setShared(false);
                 event.setInvitees(new ArrayList<>());
                 event.setParticipants(new ArrayList<>());
@@ -151,36 +147,14 @@ public class ChatGPTService {
             }
         }
 
-        if (tasks != null) {
-            for (Map<String, Object> taskData : tasks) {
-                Task task = objectMapper.convertValue(taskData, Task.class);
-
-                if (task.getId() == null) {
-                    task.setId(UUID.randomUUID());
-                }
-                if (task.getCreationTime() == null) {
-                    task.setCreationTime(LocalDateTime.now());
-                }
-                if (task.getAllDay() == null && taskData.get("allDay") != null) {
-                    task.setAllDay(Boolean.parseBoolean(taskData.get("allDay").toString()));
-                }
-                if (task.getDueDateTime() == null && taskData.get("dueDate") != null) {
-                    try {
-                        LocalDate date = LocalDate.parse(taskData.get("dueDate").toString());
-                        task.setDueDateTime(date.atStartOfDay());
-                    } catch (Exception ignored) {}
-                }
-                entities.add(task);
-            }
-        }
 
         return entities;
     }
 
     public Map<String, Object> processTranscript(String transcript) {
         String today = LocalDate.now().toString();
-        String prompt = "Today is " + today + ". Based on the following transcript: \"" + transcript + "\", determine if it is related to creating events or tasks. " +
-                "If it is, generate a list of events and tasks strictly in JSON format with the following structure: " +
+        String prompt = "Today is " + today + ". Based on the following transcript: \"" + transcript + "\", determine if it is related to creating events. " +
+                "If it is, generate a list of events strictly in JSON format with the following structure: " +
                 "{ \"events\": [{ " +
                 "\"title\": \"string\", " +
                 "\"description\": \"string\", " +
@@ -189,16 +163,9 @@ public class ChatGPTService {
                 "\"location\": \"string\", " +
                 "\"type\": \"COMMON|FITNESS|STUDIES|WORK\" " +
                 "}], " +
-                "\"tasks\": [{ " +
-                "\"title\": \"string\", " +
-                "\"description\": \"string\", " +
-                "\"completed\": false, " +
-                "\"dueDateTime\": \"ISO 8601 datetime\", " +
-                "\"allDay\": false " +
-                "}] } " +
                 "If the transcript contains a note, description, or additional information about an event, include it in the 'description' field of the event, " +
-                "unless it is clearly a separate task. " +
-                "If the transcript is not related to events or tasks, respond with: { \"error\": \"Unrelated request\" }. " +
+                "If the transcript is not related to events, respond with: { \"error\": \"Unrelated request\" }. " +
+                "Treat any mention of a 'task' as an event. " +
                 "Do not include any additional text or explanation.";
 
         String response = askChatGPT(prompt, "gpt-3.5-turbo");
@@ -210,9 +177,6 @@ public class ChatGPTService {
             }
             if (!result.containsKey("events")) {
                 result.put("events", List.of());
-            }
-            if (!result.containsKey("tasks")) {
-                result.put("tasks", List.of());
             }
             return result;
         } catch (Exception e) {

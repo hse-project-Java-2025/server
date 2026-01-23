@@ -1,0 +1,38 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: smartcalendar_db
+    environment:
+      POSTGRES_DB: smartcalendar
+      POSTGRES_USER: smartuser
+      POSTGRES_PASSWORD: smartpass
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartcalendar_app
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/smartcalendar
+      SPRING_DATASOURCE_USERNAME: smartuser
+      SPRING_DATASOURCE_PASSWORD: smartpass
+      JWT_SECRET: ${JWT_SECRET}
+      CHATGPT_API_KEY: ${CHATGPT_API_KEY}
+    networks:
+      - backend
+
+volumes:
+  postgres_data:
+
+networks:
+  backend:

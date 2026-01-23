@@ -3,7 +3,7 @@ build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
-
+tmp/*
 ### STS ###
 .apt_generated
 .classpath
@@ -37,3 +37,11 @@ out/
 
 ### Firebase Service Account ###
 timetamer-smarcalendar-firebase-adminsdk-fbsvc-8be370036a.json
+
+### Secrets ### 
+/src/main/resources/application-test-real.properties
+.env
+
+### Internal usage ###
+/internalDocs
+out.txt
