@@ -20,6 +20,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.time.format.DateTimeFormatter;
@@ -62,6 +64,13 @@ public class UserService {
         return taskRepository.findByUserId(userId);
     }
 
+    @Transactional(readOnly = true)
+    public List<Event> findEventsByUserIdAndDate(Long userId, LocalDate date) {
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(23, 59, 59);
+
+        return eventRepository.findByUserIdAndDate(userId, startOfDay, endOfDay);
+    }
     public Task createTask(Task task) {
         return taskRepository.save(task);
     }

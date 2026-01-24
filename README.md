@@ -56,6 +56,15 @@ Spring Boot backend for the "TimeTamer" SmartCalendar application. Provides REST
 
 ---
 
+## Docker
+
+### Run with Docker Compose
+```bash
+docker compose up -d --build
+```
+or use sh/ps1 scripts
+---
+
 ## Configuration
 
 ### Essential Environment Variables
@@ -151,9 +160,14 @@ Run tests with:
 ```bash
 ./gradlew test
 ```
-- Uses separate in-memory H2 database
-- External services (OpenAI) are mocked
-- Test coverage reports: `build/reports/tests`
+### Notes
+- Uses separate in-memory H2 database via test profiles
+- Real OpenAI tests are tagged `openAI-api` and excluded from default `test`
+- Run real-API tests explicitly:
+  ```bash
+  ./gradlew testOpenAI
+  ```
+- Real-API tests use `application-test-real.properties` and require valid `CHATGPT_API_KEY`
 
 ### Postman Collection
 
@@ -176,3 +190,4 @@ MIT License - see [LICENSE](LICENSE.txt) file
 ## Contributors
 - [Dmitry Rusanov](https://github.com/DimaRus05)
 - [Mikhail Minaev](https://github.com/minmise)
+- [Usatov Pavel](https://github.com/UsatovPavel)

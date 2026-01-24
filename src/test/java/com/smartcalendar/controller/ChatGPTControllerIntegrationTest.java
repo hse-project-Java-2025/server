@@ -1,5 +1,6 @@
 package com.smartcalendar.controller;
 
+import com.smartcalendar.model.Event;
 import com.smartcalendar.service.ChatGPTService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -79,5 +81,20 @@ class ChatGPTControllerIntegrationTest {
                         .content("{\"query\":\"test\"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").exists());
+    }
+    @Test
+    @WithMockUser
+    void testGenerateSuggestions() throws Exception {
+        Event mockEvent = new Event();
+        mockEvent.setTitle("Study session");
+
+        Mockito.when(chatGPTService.generateSuggestions(eq(1L), eq("study")))
+                .thenReturn(List.of(mockEvent));
+
+        mockMvc.perform(post("/api/chatgpt/1/generate/suggestions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"query\":\"study\"}")) 
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.events[0].title").value("Study session"));
     }
 }

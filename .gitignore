@@ -38,8 +38,7 @@ out/
 ### Firebase Service Account ###
 timetamer-smarcalendar-firebase-adminsdk-fbsvc-8be370036a.json
 
-### Secrets ### 
-/src/main/resources/application-test-real.properties
+### Secrets ###
 .env
 
 ### Internal usage ###

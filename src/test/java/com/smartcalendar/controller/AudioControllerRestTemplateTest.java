@@ -19,7 +19,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @Tag("openAI-api")
-//@Disabled("call real OpenAI API")
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         classes = {SmartCalendarApplication.class, TestSecurityConfig.class} // подмешиваем TestSecurityConfig
